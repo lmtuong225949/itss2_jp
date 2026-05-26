@@ -8,6 +8,7 @@ export const settingsModalStyles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    justifyContent: 'flex-end',
   },
   container: {
     borderTopLeftRadius: 24,
