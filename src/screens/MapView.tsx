@@ -10,6 +10,13 @@ interface MapProps {
 
 export default function MapView({ parkingLots, userLocation, onSelect }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const onSelectRef = useRef(onSelect);
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
   useEffect(() => {
     if (!containerRef.current || typeof window === 'undefined') return;
@@ -26,7 +33,7 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
     // Load Leaflet JS
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    
+
     script.onload = () => {
       try {
         const L = (window as any).L;
@@ -35,16 +42,28 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
           return;
         }
 
-        // Initialize map
-        const center = userLocation 
-          ? [userLocation.latitude, userLocation.longitude] 
-          : [10.7769, 106.7009];
-        const map = L.map(container).setView(center, 13);
+        let map = mapInstanceRef.current;
 
-        // Add tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-        }).addTo(map);
+        if (!map) {
+          container.innerHTML = '';
+
+          // Initialize map
+          const center = userLocation
+            ? [userLocation.latitude, userLocation.longitude]
+            : [21.0046655, 105.8443058];
+          map = L.map(container).setView(center, 20);
+
+          // Add tile layer
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+          }).addTo(map);
+
+          mapInstanceRef.current = map;
+        } else {
+          // Clear existing markers
+          markersRef.current.forEach(marker => marker.remove());
+          markersRef.current = [];
+        }
 
         // Add user location marker
         if (userLocation) {
@@ -53,17 +72,19 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
             className: 'user-marker',
             iconSize: [40, 40],
           });
-          
-          L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon })
+
+          const userMarker = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon })
             .addTo(map)
             .bindPopup('Vị trí của bạn');
+
+          markersRef.current.push(userMarker);
         }
 
         // Add parking lot markers
         parkingLots.forEach(parking => {
           const availability = parking.availableSpaces / parking.totalSpaces;
           let color = '#10b981'; // Green
-          
+
           if (availability < 0.1) {
             color = '#ef4444'; // Red
           } else if (availability < 0.3) {
@@ -84,19 +105,19 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
                   ${parking.name}
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">🚗 Chỗ trống:</span>
+                  <span style="color: #64748b; font-size: 14px;">Chỗ trống:</span>
                   <span style="font-weight: 700; color: ${color}; font-size: 15px;">${parking.availableSpaces}/${parking.totalSpaces}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">💰 Giá:</span>
-                  <span style="font-weight: 700; color: #6366f1; font-size: 15px;">${parking.pricePerHour.toLocaleString('vi-VN')}đ/giờ</span>
+                  <span style="color: #64748b; font-size: 14px;">Giá:</span>
+                  <span style="font-weight: 700; color: #6366f1; font-size: 15px;">${parking.pricePerHour.toLocaleString('vi-VN')}đ/Lượt</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">📍 Khoảng cách:</span>
+                  <span style="color: #64748b; font-size: 14px;">Khoảng cách:</span>
                   <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.distance ? parking.distance.toFixed(1) + 'km' : '---'}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">⭐ Đánh giá:</span>
+                  <span style="color: #64748b; font-size: 14px;">Đánh giá:</span>
                   <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.rating ? '⭐ ' + parking.rating.toFixed(1) : 'N/A'}</span>
                 </div>
                 <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0;">
@@ -111,15 +132,15 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
           marker.on('click', () => {
             try {
               console.log('Marker clicked:', parking.name);
-              if (onSelect && typeof onSelect === 'function') {
-                onSelect(parking);
-              } else {
-                console.error('onSelect is not a function');
+              if (onSelectRef.current) {
+                onSelectRef.current(parking);
               }
             } catch (error) {
               console.error('Error in marker click handler:', error);
             }
           });
+
+          markersRef.current.push(marker);
         });
 
         console.log('Map initialized successfully');
@@ -127,18 +148,26 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
         console.error('Error initializing map:', error);
       }
     };
-    
+
     script.onerror = () => {
       console.error('Failed to load Leaflet script');
     };
-    
+
     document.head.appendChild(script);
 
     return () => {
       if (link.parentNode) link.remove();
       if (script.parentNode) script.remove();
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.error('Error removing map instance:', e);
+        }
+        mapInstanceRef.current = null;
+      }
     };
-  }, [parkingLots, userLocation, onSelect]);
+  }, [parkingLots, userLocation]);
 
   return (
     <View style={styles.container}>
@@ -148,12 +177,12 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
 }
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  map: { 
-    width: '100%', 
+  map: {
+    width: '100%',
     height: '100%',
     borderRadius: 0,
     overflow: 'hidden',

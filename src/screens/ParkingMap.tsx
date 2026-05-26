@@ -52,9 +52,9 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
     if (!mapRef.current || !window.L) return;
 
     // Initialize map centered on user location or default
-    const center = userLocation 
+    const center = userLocation
       ? [userLocation.latitude, userLocation.longitude]
-      : [10.7769, 106.7009]; // Default: Ho Chi Minh City center
+      : [21.0046655, 105.8443058]; // Default: Ho Chi Minh City center
 
     const map = window.L.map(mapRef.current).setView(center, 13);
 
@@ -70,12 +70,12 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
         className: 'user-marker',
         iconSize: [30, 30]
       });
-      
+
       window.L.marker([userLocation.latitude, userLocation.longitude], {
         icon: userIcon
       })
-      .addTo(map)
-      .bindPopup('Vị trí của bạn');
+        .addTo(map)
+        .bindPopup('Vị trí của bạn');
     }
 
     // Add parking lot markers
@@ -101,8 +101,8 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
       const marker = window.L.marker([parking.latitude, parking.longitude], {
         icon: parkingIcon
       })
-      .addTo(map)
-      .bindPopup(`
+        .addTo(map)
+        .bindPopup(`
         <div style="min-width: 200px;">
           <h4>${parking.name}</h4>
           <p>📍 ${parking.address}</p>

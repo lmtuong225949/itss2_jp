@@ -24,12 +24,19 @@ const WebMap: React.FC<WebMapProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const onParkingSelectRef = useRef(onParkingSelect);
+
+  useEffect(() => {
+    onParkingSelectRef.current = onParkingSelect;
+  }, [onParkingSelect]);
 
   useEffect(() => {
     const loadMap = async () => {
       try {
         setError(null);
-        
+
         // Load Leaflet CSS
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -42,22 +49,22 @@ const WebMap: React.FC<WebMapProps> = ({
         // Load Leaflet JS
         const script = document.createElement('script');
         script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        
+
         script.onload = () => {
-          console.log('✅ Leaflet loaded successfully');
+          console.log('Leaflet loaded successfully');
           setMapLoaded(true);
           setTimeout(initializeMap, 100);
         };
-        
+
         script.onerror = () => {
-          console.error('❌ Failed to load Leaflet');
+          console.error('Failed to load Leaflet');
           setError('Không thể tải bản đồ');
         };
-        
+
         document.head.appendChild(script);
 
       } catch (err) {
-        console.error('❌ Error loading map:', err);
+        console.error('Error loading map:', err);
         setError('Lỗi tải bản đồ');
       }
     };
@@ -70,37 +77,51 @@ const WebMap: React.FC<WebMapProps> = ({
       const script = document.querySelector('script[src*="leaflet"]');
       if (link) link.remove();
       if (script) script.remove();
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.error('Error removing map instance:', e);
+        }
+        mapInstanceRef.current = null;
+      }
     };
   }, []);
 
   const initializeMap = () => {
     if (!mapContainerRef.current || !window.L) {
-      console.log('❌ Map container or Leaflet not available');
+      console.log('Map container or Leaflet not available');
       return;
     }
 
     try {
-      console.log('🗺️ Initializing map...');
-      console.log('📍 User location:', userLocation);
-      console.log('🅿️ Parking lots:', parkingLots.length);
+      console.log('Initializing map...');
+      let map = mapInstanceRef.current;
 
-      // Clear existing content
-      mapContainerRef.current.innerHTML = '';
+      if (!map) {
+        // Clear existing content only once
+        mapContainerRef.current.innerHTML = '';
 
-      // Initialize map
-      const center = userLocation 
-        ? [userLocation.latitude, userLocation.longitude]
-        : [10.7769, 106.7009];
+        // Initialize map
+        const center = userLocation
+          ? [userLocation.latitude, userLocation.longitude]
+          : [21.0046655, 105.8443058];
 
-      const map = window.L.map(mapContainerRef.current).setView(center, 13);
+        map = window.L.map(mapContainerRef.current).setView(center, 13);
 
-      // Add OpenStreetMap tiles
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
+        // Add OpenStreetMap tiles
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(map);
 
-      console.log('🗺️ Base map created');
+        mapInstanceRef.current = map;
+        console.log('Base map created');
+      } else {
+        // Clear existing markers
+        markersRef.current.forEach(marker => marker.remove());
+        markersRef.current = [];
+      }
 
       // Add user location marker
       if (userLocation) {
@@ -109,13 +130,14 @@ const WebMap: React.FC<WebMapProps> = ({
           className: 'user-marker',
           iconSize: [30, 30],
         });
-        
-        window.L.marker([userLocation.latitude, userLocation.longitude], {
+
+        const userMarker = window.L.marker([userLocation.latitude, userLocation.longitude], {
           icon: userIcon,
         })
-        .addTo(map)
-        .bindPopup('Vị trí của bạn');
-        
+          .addTo(map)
+          .bindPopup('Vị trí của bạn');
+
+        markersRef.current.push(userMarker);
         console.log('👤 User marker added');
       }
 
@@ -142,36 +164,38 @@ const WebMap: React.FC<WebMapProps> = ({
         const marker = window.L.marker([parking.latitude, parking.longitude], {
           icon: parkingIcon,
         })
-        .addTo(map)
-        .bindPopup(`
+          .addTo(map)
+          .bindPopup(`
           <div style="min-width: 200px; font-family: Arial, sans-serif;">
             <h4 style="margin: 0 0 8px 0; color: #333;">${parking.name}</h4>
-            <p style="margin: 4px 0; color: #666;">📍 ${parking.address}</p>
-            <p style="margin: 4px 0; color: #666;">🚗 Trống: ${parking.availableSpaces}/${parking.totalSpaces}</p>
-            <p style="margin: 4px 0; color: #666;">💰 ${parking.pricePerHour.toLocaleString()}đ/giờ</p>
-            <p style="margin: 4px 0; color: #666;">⭐ ${parking.rating || 'N/A'}</p>
-            <p style="margin: 4px 0; color: ${parking.isOpen ? '#28a745' : '#dc3545'};">${parking.isOpen ? '🟢 Đang mở' : '🔴 Đã đóng'}</p>
+            <p style="margin: 4px 0; color: #666;">${parking.address}</p>
+            <p style="margin: 4px 0; color: #666;">Trống: ${parking.availableSpaces}/${parking.totalSpaces}</p>
+            <p style="margin: 4px 0; color: #666;">${parking.pricePerHour.toLocaleString()}đ/lượt</p>
+            <p style="margin: 4px 0; color: #666;">Đánh giá: ${parking.rating || 'N/A'}</p>
+            <p style="margin: 4px 0; color: ${parking.isOpen ? '#28a745' : '#dc3545'};">${parking.isOpen ? 'Đang mở' : 'Đã đóng'}</p>
           </div>
         `);
 
         marker.on('click', () => {
-          console.log('🅿️ Parking selected:', parking.name);
-          onParkingSelect(parking);
+          console.log('Parking selected:', parking.name);
+          if (onParkingSelectRef.current) {
+            onParkingSelectRef.current(parking);
+          }
         });
 
-        console.log(`🅿️ Parking marker ${index + 1} added: ${parking.name}`);
+        markersRef.current.push(marker);
+        console.log(`Parking marker ${index + 1} added: ${parking.name}`);
       });
 
-      // Center on selected parking
+      // Center on selected parking initially if it exists
       if (selectedParking) {
         map.setView([selectedParking.latitude, selectedParking.longitude], 15);
-        console.log('🎯 Centered on selected parking:', selectedParking.name);
       }
 
-      console.log('✅ Map initialized successfully!');
+      console.log('Map initialized successfully!');
 
     } catch (error) {
-      console.error('❌ Error initializing map:', error);
+      console.error(' Error initializing map:', error);
       setError('Lỗi khởi tạo bản đồ');
     }
   };
@@ -180,12 +204,18 @@ const WebMap: React.FC<WebMapProps> = ({
     if (mapLoaded && window.L) {
       initializeMap();
     }
-  }, [parkingLots, userLocation, selectedParking, mapLoaded]);
+  }, [parkingLots, userLocation, mapLoaded]);
+
+  useEffect(() => {
+    if (mapInstanceRef.current && selectedParking) {
+      mapInstanceRef.current.setView([selectedParking.latitude, selectedParking.longitude], 15);
+    }
+  }, [selectedParking]);
 
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>⚠️ {error}</Text>
+        <Text style={styles.errorText}> {error}</Text>
         <Text style={styles.errorSubtext}>Vui lòng thử lại hoặc kiểm tra kết nối mạng</Text>
       </View>
     );
@@ -193,19 +223,19 @@ const WebMap: React.FC<WebMapProps> = ({
 
   return (
     <View style={styles.container}>
-      <div 
+      <div
         ref={mapContainerRef}
-        style={{ 
-          width: '100%', 
+        style={{
+          width: '100%',
           height: '100%',
           minHeight: 400,
           backgroundColor: '#f0f0f0',
           position: 'relative'
-        }} 
+        }}
       />
       {!mapLoaded && (
         <View style={styles.loading}>
-          <Text style={styles.loadingText}>🗺️ Đang tải bản đồ...</Text>
+          <Text style={styles.loadingText}> Đang tải bản đồ...</Text>
           <Text style={styles.loadingSubtext}>Vui lòng đợi trong giây lát</Text>
         </View>
       )}
