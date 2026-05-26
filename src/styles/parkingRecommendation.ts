@@ -170,12 +170,33 @@ export const parkingRecommendationStyles = StyleSheet.create({
     marginLeft: 8,
   },
   actionButton: {
+    flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   actionButtonText: {
     color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+  },
+  secondaryButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
+  },
+  secondaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
   },

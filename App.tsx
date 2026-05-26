@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import MapView from './src/screens/MapView';
 import ParkingList from './src/screens/ParkingList';
 import ParkingRecommendationComponent from './src/screens/ParkingRecommendation';
 import SettingsModal from './src/screens/SettingsModal';
+import ParkingDetailScreen from './src/screens/ParkingDetails';
 import { ParkingService } from './src/utils/parkingService';
 import { ParkingLot, UserLocation, ParkingRecommendation as RecommendationType } from './src/types/parking';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
@@ -22,6 +23,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'map' | 'list' | 'recommend'>('recommend');
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [viewingDetails, setViewingDetails] = useState<ParkingLot | null>(null);
 
   const { colors, language, setLanguage } = useTheme();
   const t = useTranslation(language);
@@ -31,6 +33,23 @@ function AppContent() {
   useEffect(() => {
     initializeApp();
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).showParkingDetails = (id: string) => {
+        const found = parkingLots.find(p => p.id === id);
+        if (found) {
+          setSelectedParking(found);
+          setViewingDetails(found);
+        }
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).showParkingDetails;
+      }
+    };
+  }, [parkingLots]);
 
   const initializeApp = async () => {
     try {
@@ -57,6 +76,7 @@ function AppContent() {
 
   const handleParkingSelect = useCallback((parking: ParkingLot) => {
     setSelectedParking(parking);
+    setViewingDetails(parking);
   }, []);
 
   const renderContent = () => {
@@ -101,6 +121,7 @@ function AppContent() {
                 setSelectedParking(rec.parkingLot);
                 setActiveTab('map');
               }}
+              onDetailSelect={handleParkingSelect}
             />
           </View>
         );
@@ -108,6 +129,21 @@ function AppContent() {
         return null;
     }
   };
+
+  if (viewingDetails) {
+    return (
+      <ParkingDetailScreen
+        parkingLot={viewingDetails}
+        onBack={() => setViewingDetails(null)}
+        onShowOnMap={(parkingLot) => {
+          setSelectedParking(parkingLot);
+          setViewingDetails(null);
+          setActiveTab('map');
+        }}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={[commonStyles.container, { backgroundColor: colors.background }]}>
       <StatusBar style="light" />
