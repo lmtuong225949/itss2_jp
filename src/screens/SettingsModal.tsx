@@ -8,10 +8,9 @@ import { settingsModalStyles } from '../styles/settingsModal';
 interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
-  onLogout?: () => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, onLogout }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
   const { theme, toggleTheme, language, setLanguage, colors } = useTheme();
   const t = useTranslation(language).settings;
 
@@ -135,20 +134,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, onLogou
               </View>
             </View>
 
-            {onLogout && (
-              <View style={settingsModalStyles.section}>
-                <TouchableOpacity
-                  style={[settingsModalStyles.logoutButton, { backgroundColor: '#ef4444' }]}
-                  onPress={() => {
-                    onLogout();
-                    onClose();
-                  }}
-                >
-                  <Ionicons name="log-out-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={settingsModalStyles.logoutButtonText}>{t.logout}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+
           </View>
         </SafeAreaView>
       </View>

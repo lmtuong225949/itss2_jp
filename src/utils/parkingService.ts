@@ -37,7 +37,6 @@ export class ParkingService {
           parking.longitude
         ),
       }))
-      .filter(parking => parking.distance <= 10) // Within 10km
       .sort((a, b) => (a.distance || 0) - (b.distance || 0));
   }
 
@@ -50,7 +49,6 @@ export class ParkingService {
     
     return nearbyLots
       .filter(parking => 
-        (parking.distance || 0) <= maxDistance && 
         parking.availableSpaces > 0 &&
         parking.isOpen
       )
