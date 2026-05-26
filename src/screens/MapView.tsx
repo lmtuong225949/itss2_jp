@@ -120,10 +120,11 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
                   <span style="color: #64748b; font-size: 14px;">Đánh giá:</span>
                   <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.rating ? '⭐ ' + parking.rating.toFixed(1) : 'N/A'}</span>
                 </div>
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0;">
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                   <span style="display: inline-block; padding: 6px 12px; background: ${parking.isOpen ? '#ecfdf5' : '#fef2f2'}; color: ${parking.isOpen ? '#059669' : '#dc2626'}; border-radius: 8px; font-size: 13px; font-weight: 700;">
                     ${parking.isOpen ? '● ĐANG MỞ' : '● ĐÃ ĐÓNG'}
                   </span>
+                  <button onclick="window.showParkingDetails('${parking.id}')" style="background:#5B45D9;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:0 2px 4px rgba(91,69,217,0.2);">Chi tiết →</button>
                 </div>
               </div>
             `);
