@@ -1,14 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ParkingLot, UserLocation } from '../types/parking';
+import { formatDistance } from '../utils/helpers';
 
 interface MapProps {
   parkingLots: ParkingLot[];
   userLocation: UserLocation | null;
+  recommendedParkingId?: string;
   onSelect: (parking: ParkingLot) => void;
 }
 
-export default function MapView({ parkingLots, userLocation, onSelect }: MapProps) {
+const MAP_STYLE_ID = 'parking-map-animations';
+
+export default function MapView({ parkingLots, userLocation, recommendedParkingId, onSelect }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -23,6 +27,48 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
 
     const container = containerRef.current;
     container.innerHTML = '';
+
+    if (!document.getElementById(MAP_STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = MAP_STYLE_ID;
+      style.textContent = `
+        @keyframes recommendedPulse {
+          0% { transform: scale(0.9); opacity: 0.8; }
+          70% { transform: scale(1.6); opacity: 0.0; }
+          100% { transform: scale(1.6); opacity: 0.0; }
+        }
+        .recommended-marker { position: relative; width: 52px; height: 52px; }
+        .recommended-pulse {
+          position: absolute;
+          top: -6px;
+          left: -6px;
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: rgba(14, 165, 233, 0.35);
+          animation: recommendedPulse 1.6s ease-out infinite;
+          z-index: 1;
+        }
+        .recommended-badge {
+          position: absolute;
+          top: 6px;
+          left: 6px;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: bold;
+          border: 4px solid white;
+          box-shadow: 0 6px 16px rgba(14, 165, 233, 0.45);
+          z-index: 2;
+          font-size: 15px;
+        }
+      `;
+      document.head.appendChild(style);
+    }
 
     // Load Leaflet CSS
     const link = document.createElement('link');
@@ -84,6 +130,7 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
         parkingLots.forEach(parking => {
           const availability = parking.availableSpaces / parking.totalSpaces;
           let color = '#10b981'; // Green
+          const isRecommended = recommendedParkingId === parking.id;
 
           if (availability < 0.1) {
             color = '#ef4444'; // Red
@@ -92,12 +139,22 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
           }
 
           const parkingIcon = L.divIcon({
-            html: `<div style="background:${color};color:white;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-weight:bold;font-size:15px;">${parking.availableSpaces}</div>`,
-            className: 'parking-marker',
-            iconSize: [44, 44],
+            html: isRecommended
+              ? `
+                <div class="recommended-marker">
+                  <div class="recommended-pulse"></div>
+                  <div class="recommended-badge" style="background:#0ea5e9;">${parking.availableSpaces}</div>
+                </div>
+              `
+              : `<div style="background:${color};color:white;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-weight:bold;font-size:15px;">${parking.availableSpaces}</div>`,
+            className: isRecommended ? 'parking-marker recommended' : 'parking-marker',
+            iconSize: isRecommended ? [52, 52] : [44, 44],
           });
 
-          const marker = L.marker([parking.latitude, parking.longitude], { icon: parkingIcon })
+          const marker = L.marker([parking.latitude, parking.longitude], {
+            icon: parkingIcon,
+            zIndexOffset: isRecommended ? 1000 : 0,
+          })
             .addTo(map)
             .bindPopup(`
               <div style="min-width: 240px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -114,7 +171,7 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
                   <span style="color: #64748b; font-size: 14px;">Khoảng cách:</span>
-                  <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.distance ? parking.distance.toFixed(1) + 'km' : '---'}</span>
+                  <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.distance ? formatDistance(parking.distance) : '---'}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
                   <span style="color: #64748b; font-size: 14px;">Đánh giá:</span>
@@ -167,7 +224,7 @@ export default function MapView({ parkingLots, userLocation, onSelect }: MapProp
         mapInstanceRef.current = null;
       }
     };
-  }, [parkingLots, userLocation]);
+  }, [parkingLots, recommendedParkingId, userLocation]);
 
   return (
     <View style={styles.container}>

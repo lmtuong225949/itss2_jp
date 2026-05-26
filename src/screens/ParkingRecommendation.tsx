@@ -4,6 +4,7 @@ import { ParkingRecommendation as RecommendationType } from '../types/parking';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../utils/translations';
 import { parkingRecommendationStyles } from '../styles/parkingRecommendation';
+import { formatDistance } from '../utils/helpers';
 
 interface ParkingRecommendationProps {
   recommendations: RecommendationType[];
@@ -76,7 +77,7 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
             <View style={[parkingRecommendationStyles.statItem, { backgroundColor: colors.background }]}>
               <Ionicons name="navigate-outline" size={20} color={colors.textSecondary} />
               <Text style={[parkingRecommendationStyles.statLabel, { color: colors.textSecondary }]}>{t.recommend.distance}</Text>
-              <Text style={[parkingRecommendationStyles.statValue, { color: colors.text }]}>{recommendation.distance.toFixed(1)}km</Text>
+              <Text style={[parkingRecommendationStyles.statValue, { color: colors.text }]}>{formatDistance(recommendation.distance)}</Text>
             </View>
 
             <View style={[parkingRecommendationStyles.statItem, { backgroundColor: colors.background }]}>
