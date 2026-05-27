@@ -6,8 +6,8 @@ export const translations = {
     },
     tabs: {
       recommend: 'Gợi ý',
-      map: 'Bản đồ',
       list: 'Danh sách',
+      map: 'Bản đồ',
     },
     recommend: {
       title: 'Gợi ý tốt nhất',
@@ -22,6 +22,7 @@ export const translations = {
       perHour: '/giờ',
       score: 'Độ phù hợp',
       viewOnMap: 'Xem trên bản đồ →',
+      viewDetails: 'Xem chi tiết',
       manySpaces: 'Nhiều chỗ trống',
       nearby: 'Gần bạn',
       cheapPrice: 'Giá rẻ',
@@ -84,8 +85,8 @@ export const translations = {
     },
     tabs: {
       recommend: 'Recommend',
-      map: 'Map',
       list: 'List',
+      map: 'Map',
     },
     recommend: {
       title: 'Best Recommendations',
@@ -100,6 +101,7 @@ export const translations = {
       perHour: '/hour',
       score: 'Match Score',
       viewOnMap: 'View on Map →',
+      viewDetails: 'View Details',
       manySpaces: 'Many spaces available',
       nearby: 'Nearby',
       cheapPrice: 'Cheap price',
@@ -162,8 +164,8 @@ export const translations = {
     },
     tabs: {
       recommend: 'おすすめ',
+      list: '一覧',
       map: '地図',
-      list: 'リスト',
     },
     recommend: {
       title: 'ベストおすすめ',
@@ -178,6 +180,7 @@ export const translations = {
       perHour: '/時間',
       score: '適合度',
       viewOnMap: '地図で見る →',
+      viewDetails: '詳細を表示',
       manySpaces: '空きあり',
       nearby: '近く',
       cheapPrice: '安い',

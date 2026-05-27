@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ParkingRecommendation as RecommendationType } from '../types/parking';
+import { ParkingRecommendation as RecommendationType, ParkingLot } from '../types/parking';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../utils/translations';
 import { parkingRecommendationStyles } from '../styles/parkingRecommendation';
@@ -10,12 +10,14 @@ interface ParkingRecommendationProps {
   recommendations: RecommendationType[];
   language: 'vi' | 'en' | 'ja';
   onRecommendationSelect: (recommendation: RecommendationType) => void;
+  onDetailSelect: (parkingLot: ParkingLot) => void;
 }
 
 const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
   recommendations,
   language,
   onRecommendationSelect,
+  onDetailSelect,
 }) => {
   const { colors } = useTheme();
   const t = useTranslation(language);
@@ -32,15 +34,13 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={parkingRecommendationStyles.scrollContent}>
       {recommendations.map((recommendation, index) => (
-        <TouchableOpacity
+        <View
           key={recommendation.parkingLot.id}
           style={[
             parkingRecommendationStyles.recommendationCard,
             { backgroundColor: colors.card },
             index === 0 && [parkingRecommendationStyles.topRecommendation, { borderColor: colors.primary }]
           ]}
-          onPress={() => onRecommendationSelect(recommendation)}
-          activeOpacity={0.8}
         >
           {index === 0 && (
             <View style={[parkingRecommendationStyles.topBadge, { backgroundColor: colors.primary }]}>
@@ -118,10 +118,26 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
             </Text>
           </View>
 
-          <View style={[parkingRecommendationStyles.actionButton, { backgroundColor: colors.primary }]}>
-            <Text style={parkingRecommendationStyles.actionButtonText}>{t.recommend.viewOnMap}</Text>
+          <View style={parkingRecommendationStyles.buttonRow}>
+            <TouchableOpacity
+              style={[parkingRecommendationStyles.secondaryButton, { borderColor: colors.primary }]}
+              onPress={() => onDetailSelect(recommendation.parkingLot)}
+              activeOpacity={0.7}
+            >
+              <Text style={[parkingRecommendationStyles.secondaryButtonText, { color: colors.primary }]}>
+                {t.recommend.viewDetails}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[parkingRecommendationStyles.actionButton, { backgroundColor: colors.primary }]}
+              onPress={() => onRecommendationSelect(recommendation)}
+              activeOpacity={0.7}
+            >
+              <Text style={parkingRecommendationStyles.actionButtonText}>{t.recommend.viewOnMap}</Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       ))}
     </ScrollView>
   );

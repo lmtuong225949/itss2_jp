@@ -172,7 +172,10 @@ const WebMap: React.FC<WebMapProps> = ({
             <p style="margin: 4px 0; color: #666;">Trống: ${parking.availableSpaces}/${parking.totalSpaces}</p>
             <p style="margin: 4px 0; color: #666;">${parking.pricePerHour.toLocaleString()}đ/lượt</p>
             <p style="margin: 4px 0; color: #666;">Đánh giá: ${parking.rating || 'N/A'}</p>
-            <p style="margin: 4px 0; color: ${parking.isOpen ? '#28a745' : '#dc3545'};">${parking.isOpen ? 'Đang mở' : 'Đã đóng'}</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+              <span style="color: ${parking.isOpen ? '#28a745' : '#dc3545'}; font-weight: bold;">${parking.isOpen ? 'Đang mở' : 'Đã đóng'}</span>
+              <button onclick="window.showParkingDetails('${parking.id}')" style="background:#5B45D9;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-weight:bold;cursor:pointer;font-size:12px;">Chi tiết →</button>
+            </div>
           </div>
         `);
 
