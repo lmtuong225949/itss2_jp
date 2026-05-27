@@ -4,6 +4,7 @@ import { ParkingLot } from '../types/parking';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../utils/translations';
 import { parkingListStyles } from '../styles/parkingList';
+import { formatDistance } from '../utils/helpers';
 
 interface ParkingListProps {
   parkingLots: ParkingLot[];
@@ -124,7 +125,7 @@ const ParkingList: React.FC<ParkingListProps> = ({
               </View>
               <View>
                 <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
-                  {parking.distance ? `${parking.distance.toFixed(1)}km` : '---'}
+                  {parking.distance ? formatDistance(parking.distance) : '---'}
                 </Text>
                 <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>{t.list.distance}</Text>
               </View>

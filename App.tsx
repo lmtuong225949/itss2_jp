@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
 import MapView from './src/screens/MapView';
 import ParkingList from './src/screens/ParkingList';
@@ -34,40 +35,67 @@ function AppContent() {
     initializeApp();
   }, []);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).showParkingDetails = (id: string) => {
-        const found = parkingLots.find(p => p.id === id);
-        if (found) {
-          setSelectedParking(found);
-          setViewingDetails(found);
-        }
-      };
+  const DEFAULT_LOCATION: UserLocation = { latitude: 21.0046655, longitude: 105.8443058 };
+
+  const refreshParkingData = useCallback(async (location: UserLocation) => {
+    const nearbyLots = await parkingService.getNearbyParkingLots(location);
+    setParkingLots(nearbyLots);
+
+    const recs = await parkingService.getParkingRecommendations(location);
+    setRecommendations(recs);
+  }, [parkingService]);
+
+  const requestUserLocation = async (): Promise<UserLocation> => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      throw new Error('Location permission not granted');
     }
-    return () => {
-      if (typeof window !== 'undefined') {
-        delete (window as any).showParkingDetails;
-      }
+
+    const current = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+
+    return {
+      latitude: current.coords.latitude,
+      longitude: current.coords.longitude,
     };
-  }, [parkingLots]);
+  };
 
   const initializeApp = async () => {
     try {
       setLoading(true);
-      const mockUserLocation: UserLocation = { latitude: 21.0046655, longitude: 105.8443058 };
-      setUserLocation(mockUserLocation);
+      let location = DEFAULT_LOCATION;
+      try {
+        location = await requestUserLocation();
+      } catch (error) {
+        console.warn('Using fallback location:', error);
+      }
 
-      const nearbyLots = await parkingService.getNearbyParkingLots(mockUserLocation);
-      setParkingLots(nearbyLots);
-
-      const recs = await parkingService.getParkingRecommendations(mockUserLocation);
-      setRecommendations(recs);
+      setUserLocation(location);
+      await refreshParkingData(location);
     } catch (error) {
       console.error('Error initializing app:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!userLocation) return;
+
+    const intervalId = setInterval(async () => {
+      if (parkingLots.length === 0) return;
+
+      const target = parkingLots[Math.floor(Math.random() * parkingLots.length)];
+      const magnitude = Math.ceil(Math.random() * 3);
+      const change = Math.random() > 0.5 ? magnitude : -magnitude;
+
+      await parkingService.updateParkingLotAvailability(target.id, change);
+      await refreshParkingData(userLocation);
+    }, 6000);
+
+    return () => clearInterval(intervalId);
+  }, [parkingLots, parkingService, refreshParkingData, userLocation]);
 
   const handleRecommendationSelect = useCallback((recommendation: RecommendationType) => {
     setSelectedParking(recommendation.parkingLot);
@@ -95,6 +123,7 @@ function AppContent() {
           <MapView
             parkingLots={parkingLots}
             userLocation={userLocation}
+            recommendedParkingId={recommendations[0]?.parkingLot.id}
             onSelect={handleParkingSelect}
           />
         );
