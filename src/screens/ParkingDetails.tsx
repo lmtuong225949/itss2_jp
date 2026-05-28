@@ -12,27 +12,41 @@ import { ParkingLot } from "../types/parking";
 import { useTheme } from "../contexts/ThemeContext";
 
 interface ParkingDetailScreenProps {
-  parkingLot: ParkingLot;
-  onBack: () => void;
-  onShowOnMap: (parkingLot: ParkingLot) => void;
+    parkingLot: ParkingLot;
+    onBack: () => void;
+    onShowOnMap: (parkingLot: ParkingLot) => void;
 }
 
 const getParkingImage = (id: string) => {
-  switch (id) {
-    case '1': return 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a'; // C7
-    case '2': return 'https://images.unsplash.com/photo-1590674899484-d5640e854abe'; // D3-D5
-    case '3': return 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98'; // D9
-    case '4': return 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7'; // D6-D8
-    case '5': return 'https://images.unsplash.com/photo-1517649763962-0c623066013b'; // C9
-    default: return 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a';
-  }
+    switch (id) {
+        case '1': return 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a'; // C7
+        case '2': return 'https://images.unsplash.com/photo-1590674899484-d5640e854abe'; // D3-D5
+        case '3': return 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98'; // D9
+        case '4': return 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7'; // D6-D8
+        case '5': return 'https://images.unsplash.com/photo-1517649763962-0c623066013b'; // C9
+        default: return 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a';
+    }
 };
 
 export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }: ParkingDetailScreenProps) {
     const { colors, theme } = useTheme();
 
+    const currentHour = new Date().getHours();
+
     // Stats and values
-    const distanceVal = parkingLot.distance ? parkingLot.distance.toFixed(1) : '---';
+    let distanceVal = '---';
+    let distanceUnit = 'KM';
+    if (parkingLot.distance !== undefined) {
+        const meters = Math.round(parkingLot.distance * 1000);
+        if (meters < 1000) {
+            distanceVal = meters.toString();
+            distanceUnit = 'M';
+        } else {
+            const formattedKm = parkingLot.distance.toFixed(3);
+            distanceVal = formattedKm.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+            distanceUnit = 'KM';
+        }
+    }
     const dayPrice = parkingLot.pricePerHour;
     const nightPrice = parkingLot.pricePerHour + 1000;
     const overnightPrice = parkingLot.pricePerHour * 2;
@@ -74,7 +88,7 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }:
                             <Text style={[styles.addressText, { color: colors.textSecondary }]}>{parkingLot.address}</Text>
                         </View>
 
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[styles.iconBox, { backgroundColor: colors.background, borderColor: colors.border }]}
                             onPress={() => onShowOnMap(parkingLot)}
                             activeOpacity={0.7}
@@ -102,7 +116,7 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }:
 
                         <View style={[styles.statBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
                             <Text style={[styles.statBlack, { color: colors.text }]}>{distanceVal}</Text>
-                            <Text style={[styles.statSmall, { color: colors.textSecondary }]}>KM</Text>
+                            <Text style={[styles.statSmall, { color: colors.textSecondary }]}>{distanceUnit}</Text>
                         </View>
                     </View>
                 </View>
@@ -117,32 +131,46 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }:
                         </View>
                     </View>
 
-                    <View style={styles.chart}>
-                        {[70, 100, 130, 180, 150, 110, 80, 55].map((height, index) => (
-                            <View key={index} style={styles.barWrapper}>
-                                {index === 3 && (
-                                    <View style={[styles.nowBadge, { backgroundColor: colors.primary }]}>
-                                        <Text style={styles.nowText}>Now</Text>
-                                    </View>
-                                )}
-                                <View
-                                    style={[
-                                        styles.bar,
-                                        {
-                                            height,
-                                            backgroundColor: index === 3 ? colors.primary : (theme === 'light' ? '#DEDCE7' : '#475569'),
-                                        },
-                                    ]}
-                                />
-                            </View>
-                        ))}
-                    </View>
+                    <View style={[styles.chart, { marginBottom: 20 }]}>
+                        {[20, 30, 50, 70, 85, 95, 100, 105, 100, 90, 100, 110, 105, 95, 75, 40].map((height, index) => {
+                            const hr = 6 + index;
+                            const clampedHour = Math.max(6, Math.min(21, currentHour));
+                            const nowIndex = clampedHour - 6;
 
-                    <View style={styles.timeRow}>
-                        <Text style={[styles.timeText, { color: colors.textSecondary }]}>8 AM</Text>
-                        <Text style={[styles.timeText, { color: colors.textSecondary }]}>12 PM</Text>
-                        <Text style={[styles.timeText, { color: colors.textSecondary }]}>4 PM</Text>
-                        <Text style={[styles.timeText, { color: colors.textSecondary }]}>8 PM</Text>
+                            const isNow = index === nowIndex;
+                            const showLabel = hr === 6 || hr === 12 || hr === 18 || hr === 21;
+                            const labelText = hr === 6 ? '6 AM' :
+                                              hr === 12 ? '12 PM' :
+                                              hr === 18 ? '6 PM' :
+                                              hr === 21 ? '9 PM' : '';
+
+                            return (
+                                <View
+                                    key={index}
+                                    style={[styles.barWrapper, { position: 'relative' }]}
+                                >
+                                    {isNow && (
+                                        <View style={[styles.nowBadge, { backgroundColor: colors.primary, minWidth: 32, paddingHorizontal: 6, paddingVertical: 2, alignItems: 'center' }]}>
+                                            <Text style={[styles.nowText, { fontSize: 9 }]} numberOfLines={1}>Now</Text>
+                                        </View>
+                                    )}
+                                    <View
+                                        style={[
+                                            styles.bar,
+                                            {
+                                                height,
+                                                backgroundColor: isNow ? colors.primary : (theme === 'light' ? '#DEDCE7' : '#475569'),
+                                            },
+                                        ]}
+                                    />
+                                    {showLabel && (
+                                        <Text style={[styles.timeText, { color: colors.textSecondary, position: 'absolute', bottom: -22, width: 50, maxWidth: 50, textAlign: 'center', fontSize: 12 }]} numberOfLines={1}>
+                                            {labelText}
+                                        </Text>
+                                    )}
+                                </View>
+                            );
+                        })}
                     </View>
                 </View>
 
@@ -338,16 +366,17 @@ const styles = StyleSheet.create({
         height: 150,
         flexDirection: "row",
         alignItems: "flex-end",
-        justifyContent: "space-between",
+        justifyContent: "center",
     },
     barWrapper: {
         alignItems: "center",
         justifyContent: "flex-end",
+        marginHorizontal: 1.5,
     },
     bar: {
-        width: 24,
-        borderTopLeftRadius: 6,
-        borderTopRightRadius: 6,
+        width: 12,
+        borderTopLeftRadius: 4,
+        borderTopRightRadius: 4,
     },
     nowBadge: {
         marginBottom: 4,
@@ -366,7 +395,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
     },
     timeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: "800",
     },
     priceTitle: {

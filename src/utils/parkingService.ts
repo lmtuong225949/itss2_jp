@@ -16,7 +16,7 @@ export class ParkingService {
   async getAllParkingLots(): Promise<ParkingLot[]> {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     return this.parkingLots.map(parking => ({
       ...parking,
       lastUpdated: new Date(),
@@ -26,7 +26,7 @@ export class ParkingService {
   // Lấy bãi đỗ xe gần người dùng
   async getNearbyParkingLots(userLocation: UserLocation): Promise<ParkingLot[]> {
     const allLots = await this.getAllParkingLots();
-    
+
     return allLots
       .map(parking => ({
         ...parking,
@@ -46,9 +46,9 @@ export class ParkingService {
     maxDistance: number = 5
   ): Promise<ParkingRecommendation[]> {
     const nearbyLots = await this.getNearbyParkingLots(userLocation);
-    
+
     return nearbyLots
-      .filter(parking => 
+      .filter(parking =>
         parking.availableSpaces > 0 &&
         parking.isOpen
       )
@@ -57,7 +57,7 @@ export class ParkingService {
         const distanceScore = this.calculateDistanceScore(parking.distance || 0);
         const priceScore = this.calculatePriceScore(parking.pricePerHour);
         const ratingScore = this.calculateRatingScore(parking.rating || 0);
-        
+
         const overallScore = (
           availabilityScore * 0.4 +
           distanceScore * 0.3 +
@@ -80,7 +80,7 @@ export class ParkingService {
   // Tính điểm độ phù hợp về chỗ trống
   private calculateAvailabilityScore(parking: ParkingLot): number {
     const availabilityRatio = parking.availableSpaces / parking.totalSpaces;
-    
+
     if (availabilityRatio > 0.5) return 1.0;
     if (availabilityRatio > 0.3) return 0.8;
     if (availabilityRatio > 0.1) return 0.6;
@@ -98,9 +98,9 @@ export class ParkingService {
 
   // Tính điểm độ phù hợp về giá
   private calculatePriceScore(price: number): number {
-    if (price <= 5000) return 1.0;
-    if (price <= 10000) return 0.8;
-    if (price <= 15000) return 0.6;
+    if (price <= 3000) return 1.0;
+    if (price <= 5000) return 0.8;
+    if (price <= 10000) return 0.6;
     return 0.4;
   }
 
@@ -118,27 +118,27 @@ export class ParkingService {
   // Tạo lý do gợi ý (trả về mảng các key translation)
   private generateRecommendationReason(parking: ParkingLot, score: number): string[] {
     const reasons: string[] = [];
-    
+
     if (parking.availableSpaces / parking.totalSpaces > 0.5) {
       reasons.push('manySpaces');
     }
-    
+
     if (parking.distance && parking.distance < 2) {
       reasons.push('nearby');
     }
-    
+
     if (parking.pricePerHour <= 10000) {
       reasons.push('cheapPrice');
     }
-    
+
     if (parking.rating && parking.rating >= 4.0) {
       reasons.push('highRating');
     }
-    
+
     if (reasons.length === 0) {
       return ['suitableChoice'];
     }
-    
+
     return reasons;
   }
 
@@ -159,7 +159,7 @@ export class ParkingService {
   async searchParkingLots(query: string): Promise<ParkingLot[]> {
     const allLots = await this.getAllParkingLots();
     const lowerQuery = query.toLowerCase();
-    
+
     return allLots.filter(parking =>
       parking.name.toLowerCase().includes(lowerQuery) ||
       parking.address.toLowerCase().includes(lowerQuery)

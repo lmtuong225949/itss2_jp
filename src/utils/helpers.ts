@@ -6,10 +6,13 @@ export const formatCurrency = (amount: number): string => {
 };
 
 export const formatDistance = (distance: number): string => {
-  if (distance < 1) {
-    return `${Math.round(distance * 1000)}m`;
+  const meters = Math.round(distance * 1000);
+  if (meters < 1000) {
+    return `${meters}m`;
   }
-  return `${distance.toFixed(1)}km`;
+  const formattedKm = distance.toFixed(3);
+  const cleaned = formattedKm.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+  return `${cleaned}km`;
 };
 
 export const formatDate = (date: Date): string => {

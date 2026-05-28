@@ -52,7 +52,7 @@ function AppContent() {
     }
 
     const current = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
+      accuracy: Location.Accuracy.BestForNavigation,
     });
 
     return {
@@ -176,18 +176,16 @@ function AppContent() {
   return (
     <SafeAreaView style={[commonStyles.container, { backgroundColor: colors.background }]}>
       <StatusBar style="light" />
-      <View style={[headerStyles.header, { backgroundColor: colors.header }]}>
+      <View style={[headerStyles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={headerStyles.headerContent}>
-          <View style={headerStyles.logoContainer}>
-            <View style={headerStyles.titleContainer}>
-              <Ionicons name="car" size={32} color={colors.headerText} />
-              <Text style={[headerStyles.headerTitle, { color: colors.headerText }]}>{t.app.title}</Text>
-            </View>
-            <TouchableOpacity onPress={() => setSettingsVisible(true)} style={headerStyles.settingsButton}>
-              <Ionicons name="settings-outline" size={24} color={colors.headerText} />
-            </TouchableOpacity>
+          <View style={headerStyles.leftContainer}>
+            <Text style={[headerStyles.headerTitle, { color: colors.text }]}>
+              Shiranui<Text style={{ color: colors.primary }}>Parker</Text>
+            </Text>
           </View>
-          <Text style={[headerStyles.subtitle, { color: colors.headerText }]}>{t.app.subtitle}</Text>
+          <TouchableOpacity onPress={() => setSettingsVisible(true)} style={headerStyles.settingsButton} activeOpacity={0.7}>
+            <Ionicons name="settings-outline" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
       </View>
 

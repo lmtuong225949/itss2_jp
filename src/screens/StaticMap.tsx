@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { ParkingLot, UserLocation } from '../types/parking';
+import { formatDistance } from '../utils/helpers';
 
 interface StaticMapProps {
   parkingLots: ParkingLot[];
@@ -17,10 +18,10 @@ const StaticMap: React.FC<StaticMapProps> = ({
   // Tạo URL cho OpenStreetMap static map
   const getMapImageUrl = () => {
     if (!userLocation) return null;
-    
+
     const markers = parkingLots.slice(0, 5).map(parking => {
-      const color = parking.availableSpaces > 10 ? 'green' : 
-                   parking.availableSpaces > 3 ? 'yellow' : 'red';
+      const color = parking.availableSpaces > 10 ? 'green' :
+        parking.availableSpaces > 3 ? 'yellow' : 'red';
       return `${color},${parking.latitude},${parking.longitude}`;
     }).join('|');
 
@@ -51,7 +52,7 @@ const StaticMap: React.FC<StaticMapProps> = ({
           style={styles.mapFrame}
           allowFullScreen
         />
-        
+
         {/* Overlay markers info */}
         <View style={styles.overlayInfo}>
           <Text style={styles.overlayTitle}>📍 Các bãi đỗ xe</Text>
@@ -75,7 +76,7 @@ const StaticMap: React.FC<StaticMapProps> = ({
       {/* Parking List on Map */}
       <ScrollView style={styles.parkingList}>
         <Text style={styles.listTitle}>🅿️ Bãi đỗ xe gần đây</Text>
-        
+
         {parkingLots.slice(0, 3).map((parking) => (
           <TouchableOpacity
             key={parking.id}
@@ -89,9 +90,9 @@ const StaticMap: React.FC<StaticMapProps> = ({
               <Text style={styles.parkingName}>{parking.name}</Text>
               <View style={[
                 styles.availabilityBadge,
-                { 
+                {
                   backgroundColor: parking.availableSpaces > 10 ? '#28a745' :
-                                   parking.availableSpaces > 3 ? '#ffc107' : '#dc3545'
+                    parking.availableSpaces > 3 ? '#ffc107' : '#dc3545'
                 }
               ]}>
                 <Text style={styles.badgeText}>
@@ -99,13 +100,13 @@ const StaticMap: React.FC<StaticMapProps> = ({
                 </Text>
               </View>
             </View>
-            
+
             <Text style={styles.address}>📍 {parking.address}</Text>
-            
+
             <View style={styles.cardFooter}>
               <Text style={styles.price}>💰 {parking.pricePerHour.toLocaleString()}đ/giờ</Text>
               <Text style={styles.distance}>
-                🚗 {parking.distance ? `${parking.distance.toFixed(1)}km` : '---'}
+                🚗 {parking.distance ? formatDistance(parking.distance) : '---'}
               </Text>
               <Text style={[
                 styles.status,
@@ -123,7 +124,7 @@ const StaticMap: React.FC<StaticMapProps> = ({
         <View style={styles.locationInfo}>
           <Text style={styles.locationTitle}>📍 Vị trí của bạn</Text>
           <Text style={styles.coords}>
-            {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+            {userLocation.latitude.toFixed(6)}, {userLocation.longitude.toFixed(6)}
           </Text>
         </View>
       )}

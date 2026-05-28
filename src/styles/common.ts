@@ -4,9 +4,8 @@ export const commonStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
-    tabContainer: {
+  tabContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
     paddingVertical: 8,
   },
   tab: {
