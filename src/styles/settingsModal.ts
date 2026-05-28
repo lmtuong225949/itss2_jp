@@ -50,7 +50,7 @@ export const settingsModalStyles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    marginHorizontal: 6,
+    marginRight: 6,
   },
   activeOption: {
     borderWidth: 0,
