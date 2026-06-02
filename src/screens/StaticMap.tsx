@@ -17,7 +17,14 @@ const StaticMap: React.FC<StaticMapProps> = ({
 }) => {
   // Tạo URL cho OpenStreetMap static map
   const getMapImageUrl = () => {
-    if (!userLocation) return null;
+    const isUserInHanoi = userLocation &&
+                          userLocation.latitude >= 20.94 &&
+                          userLocation.latitude <= 21.07 &&
+                          userLocation.longitude >= 105.77 &&
+                          userLocation.longitude <= 105.91;
+
+    const lat = isUserInHanoi && userLocation ? userLocation.latitude : 21.0046655;
+    const lng = isUserInHanoi && userLocation ? userLocation.longitude : 105.8443058;
 
     const markers = parkingLots.slice(0, 5).map(parking => {
       const color = parking.availableSpaces > 10 ? 'green' :
@@ -25,15 +32,22 @@ const StaticMap: React.FC<StaticMapProps> = ({
       return `${color},${parking.latitude},${parking.longitude}`;
     }).join('|');
 
-    const userMarker = `blue,${userLocation.latitude},${userLocation.longitude}`;
+    const userMarker = `blue,${lat},${lng}`;
     const allMarkers = markers ? `${userMarker}|${markers}` : userMarker;
 
-    return `https://maps.googleapis.com/maps/api/staticmap?center=${userLocation.latitude},${userLocation.longitude}&zoom=13&size=600x400&maptype=roadmap&markers=${allMarkers}&key=YOUR_API_KEY`;
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=13&size=600x400&maptype=roadmap&markers=${allMarkers}&key=YOUR_API_KEY`;
   };
 
   const getOpenStreetMapUrl = () => {
-    if (!userLocation) return null;
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${userLocation.longitude - 0.01},${userLocation.latitude - 0.01},${userLocation.longitude + 0.01},${userLocation.latitude + 0.01}&layer=mapnik&marker=${userLocation.latitude},${userLocation.longitude}`;
+    const isUserInHanoi = userLocation &&
+                          userLocation.latitude >= 20.94 &&
+                          userLocation.latitude <= 21.07 &&
+                          userLocation.longitude >= 105.77 &&
+                          userLocation.longitude <= 105.91;
+
+    const lat = isUserInHanoi && userLocation ? userLocation.latitude : 21.0046655;
+    const lng = isUserInHanoi && userLocation ? userLocation.longitude : 105.8443058;
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lng}`;
   };
 
   return (

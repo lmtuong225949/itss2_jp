@@ -57,17 +57,63 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
       mapRef.current.innerHTML = '';
 
       // Initialize map
-      const center = userLocation 
-        ? [userLocation.latitude, userLocation.longitude]
-        : [10.7769, 106.7009];
+      const isUserInHanoi = userLocation &&
+        userLocation.latitude >= 20.94 &&
+        userLocation.latitude <= 21.07 &&
+        userLocation.longitude >= 105.77 &&
+        userLocation.longitude <= 105.91;
 
-      const map = window.L.map(mapRef.current).setView(center, 13);
+      const center = isUserInHanoi
+        ? [userLocation.latitude, userLocation.longitude]
+        : [21.0046655, 105.8443058];
+
+      const hanoiBounds = [
+        [20.94, 105.77], // South-West (SW)
+        [21.07, 105.91]  // North-East (NE)
+      ];
+
+      const map = window.L.map(mapRef.current, {
+        maxBounds: hanoiBounds,
+        maxBoundsViscosity: 1.0
+      }).setView(center, 13);
 
       // Add OpenStreetMap tiles
       window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
       }).addTo(map);
+
+      // Dynamically calculate and restrict zoom so the visible area does not exceed 100 km²
+      const limitZoomTo100Km2 = () => {
+        if (!map) return;
+        const size = map.getSize();
+        if (size.x === 0 || size.y === 0) return;
+
+        const centerLatLng = map.getCenter();
+        const cosLat = Math.cos(centerLatLng.lat * Math.PI / 180);
+
+        // 100 km2 is 100,000,000 m2.
+        const val = (Math.sqrt(size.x * size.y) * 156543.03392 * cosLat) / 10000;
+        let minZoom = Math.ceil(Math.log2(val));
+
+        // Clamp minZoom to standard Leaflet zoom levels
+        minZoom = Math.max(0, Math.min(19, minZoom));
+
+        if (map.getMinZoom() !== minZoom) {
+          map.setMinZoom(minZoom);
+        }
+
+        if (map.getZoom() < minZoom) {
+          map.setZoom(minZoom);
+        }
+      };
+
+      map.whenReady(() => {
+        limitZoomTo100Km2();
+      });
+
+      map.on('resize', limitZoomTo100Km2);
+      map.on('moveend', limitZoomTo100Km2);
 
       // Add user location marker
       if (userLocation) {
@@ -76,12 +122,12 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
           className: 'user-marker',
           iconSize: [30, 30],
         });
-        
+
         window.L.marker([userLocation.latitude, userLocation.longitude], {
           icon: userIcon,
         })
-        .addTo(map)
-        .bindPopup('Vị trí của bạn');
+          .addTo(map)
+          .bindPopup('Vị trí của bạn');
       }
 
       // Add parking lot markers
@@ -107,8 +153,8 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
         const marker = window.L.marker([parking.latitude, parking.longitude], {
           icon: parkingIcon,
         })
-        .addTo(map)
-        .bindPopup(`
+          .addTo(map)
+          .bindPopup(`
           <div style="min-width: 200px; font-family: Arial, sans-serif;">
             <h4 style="margin: 0 0 8px 0; color: #333;">${parking.name}</h4>
             <p style="margin: 4px 0; color: #666;">📍 ${parking.address}</p>
@@ -144,14 +190,14 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
 
   return (
     <View style={styles.container}>
-      <div 
-        ref={mapRef} 
-        style={{ 
-          width: '100%', 
+      <div
+        ref={mapRef}
+        style={{
+          width: '100%',
           height: '100%',
           minHeight: 400,
           backgroundColor: '#f0f0f0'
-        }} 
+        }}
       />
       {!mapLoaded && (
         <View style={styles.loading}>
