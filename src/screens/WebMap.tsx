@@ -165,17 +165,63 @@ const WebMap: React.FC<WebMapProps> = ({
 
       // Initialize map
       const currentUserLocation = userLocationRef.current;
-      const center = currentUserLocation
+      const isUserInHanoi = currentUserLocation &&
+                            currentUserLocation.latitude >= 20.94 &&
+                            currentUserLocation.latitude <= 21.07 &&
+                            currentUserLocation.longitude >= 105.77 &&
+                            currentUserLocation.longitude <= 105.91;
+
+      const center = isUserInHanoi
         ? [currentUserLocation.latitude, currentUserLocation.longitude]
         : [21.0046655, 105.8443058];
 
-      const map = window.L.map(mapContainerRef.current).setView(center, 13);
+      const hanoiBounds = [
+        [20.94, 105.77], // South-West (SW)
+        [21.07, 105.91]  // North-East (NE)
+      ];
+
+      const map = window.L.map(mapContainerRef.current, {
+        maxBounds: hanoiBounds,
+        maxBoundsViscosity: 1.0
+      }).setView(center, 13);
 
       // Add OpenStreetMap tiles
       window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
       }).addTo(map);
+
+      // Dynamically calculate and restrict zoom so the visible area does not exceed 100 km²
+      const limitZoomTo100Km2 = () => {
+        if (!map) return;
+        const size = map.getSize();
+        if (size.x === 0 || size.y === 0) return;
+
+        const centerLatLng = map.getCenter();
+        const cosLat = Math.cos(centerLatLng.lat * Math.PI / 180);
+
+        // 100 km2 is 100,000,000 m2.
+        const val = (Math.sqrt(size.x * size.y) * 156543.03392 * cosLat) / 10000;
+        let minZoom = Math.ceil(Math.log2(val));
+
+        // Clamp minZoom to standard Leaflet zoom levels
+        minZoom = Math.max(0, Math.min(19, minZoom));
+
+        if (map.getMinZoom() !== minZoom) {
+          map.setMinZoom(minZoom);
+        }
+
+        if (map.getZoom() < minZoom) {
+          map.setZoom(minZoom);
+        }
+      };
+
+      map.whenReady(() => {
+        limitZoomTo100Km2();
+      });
+
+      map.on('resize', limitZoomTo100Km2);
+      map.on('moveend', limitZoomTo100Km2);
 
       mapInstanceRef.current = map;
       console.log('Base map created');
