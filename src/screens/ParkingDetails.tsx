@@ -140,9 +140,9 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }:
                             const isNow = index === nowIndex;
                             const showLabel = hr === 6 || hr === 12 || hr === 18 || hr === 21;
                             const labelText = hr === 6 ? '6 AM' :
-                                              hr === 12 ? '12 PM' :
-                                              hr === 18 ? '6 PM' :
-                                              hr === 21 ? '9 PM' : '';
+                                hr === 12 ? '12 PM' :
+                                    hr === 18 ? '6 PM' :
+                                        hr === 21 ? '9 PM' : '';
 
                             return (
                                 <View
@@ -206,7 +206,6 @@ const styles = StyleSheet.create({
     },
     header: {
         height: 80,
-        paddingTop: 30,
         paddingHorizontal: 16,
         flexDirection: "row",
         alignItems: "center",
