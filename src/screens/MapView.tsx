@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ParkingLot, UserLocation } from '../types/parking';
 import { formatDistance } from '../utils/helpers';
@@ -15,18 +15,192 @@ const MAP_STYLE_ID = 'parking-map-animations';
 export default function MapView({ parkingLots, userLocation, recommendedParkingId, onSelect }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Keep track of Leaflet markers without re-creating the map
+  const parkingMarkersRef = useRef<Map<string, any>>(new Map());
+  const userMarkerRef = useRef<any>(null);
+
+  // Sync refs to avoid stale closures in timeouts and Leaflet events
+  const userLocationRef = useRef(userLocation);
+  const parkingLotsRef = useRef(parkingLots);
+  const recommendedParkingIdRef = useRef(recommendedParkingId);
   const onSelectRef = useRef(onSelect);
 
-  useEffect(() => {
-    onSelectRef.current = onSelect;
-  }, [onSelect]);
+  userLocationRef.current = userLocation;
+  parkingLotsRef.current = parkingLots;
+  recommendedParkingIdRef.current = recommendedParkingId;
+  onSelectRef.current = onSelect;
+
+  const updateMarkers = (map: any) => {
+    if (!map || !window.L) return;
+
+    const currentUserLocation = userLocationRef.current;
+    const currentParkingLots = parkingLotsRef.current;
+    const currentRecommendedId = recommendedParkingIdRef.current;
+
+    // Update user location marker
+    if (currentUserLocation) {
+      const userIcon = window.L.divIcon({
+        html: '<div style="background:#6366f1;color:white;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:4px solid white;box-shadow:0 4px 12px rgba(99, 102, 241, 0.4);font-size:18px;">👤</div>',
+        className: 'user-marker',
+        iconSize: [40, 40],
+      });
+
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLatLng([currentUserLocation.latitude, currentUserLocation.longitude]);
+        userMarkerRef.current.setIcon(userIcon);
+      } else {
+        const userMarker = window.L.marker([currentUserLocation.latitude, currentUserLocation.longitude], { icon: userIcon })
+          .addTo(map)
+          .bindPopup('Vị trí của bạn');
+        userMarkerRef.current = userMarker;
+      }
+    } else {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+    }
+
+    // Keep track of current parking lot IDs to remove obsolete ones
+    const currentIds = new Set(currentParkingLots.map(p => p.id));
+
+    // Remove markers that are no longer in parkingLots
+    parkingMarkersRef.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) {
+        marker.remove();
+        parkingMarkersRef.current.delete(id);
+      }
+    });
+
+    // Add or update parking lot markers
+    currentParkingLots.forEach((parking) => {
+      const availability = parking.availableSpaces / parking.totalSpaces;
+      let color = '#10b981'; // Green
+      const isRecommended = currentRecommendedId === parking.id;
+
+      if (availability < 0.1) {
+        color = '#ef4444'; // Red
+      } else if (availability < 0.3) {
+        color = '#f59e0b'; // Amber
+      }
+
+      const parkingIcon = window.L.divIcon({
+        html: isRecommended
+          ? `
+            <div class="recommended-marker">
+              <div class="recommended-pulse"></div>
+              <div class="recommended-badge" style="background:#0ea5e9;">${parking.availableSpaces}</div>
+            </div>
+          `
+          : `<div style="background:${color};color:white;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-weight:bold;font-size:15px;">${parking.availableSpaces}</div>`,
+        className: isRecommended ? 'parking-marker recommended' : 'parking-marker',
+        iconSize: isRecommended ? [52, 52] : [44, 44],
+      });
+
+      const popupContent = `
+        <div style="min-width: 240px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+            ${parking.name}
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+            <span style="color: #64748b; font-size: 14px;">Chỗ trống:</span>
+            <span style="font-weight: 700; color: ${color}; font-size: 15px;">${parking.availableSpaces}/${parking.totalSpaces}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+            <span style="color: #64748b; font-size: 14px;">Giá:</span>
+            <span style="font-weight: 700; color: #6366f1; font-size: 15px;">${parking.pricePerHour.toLocaleString('vi-VN')}đ/Lượt</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+            <span style="color: #64748b; font-size: 14px;">Khoảng cách:</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.distance ? formatDistance(parking.distance) : '---'}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+            <span style="color: #64748b; font-size: 14px;">Đánh giá:</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.rating ? '⭐ ' + parking.rating.toFixed(1) : 'N/A'}</span>
+          </div>
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <span style="display: inline-block; padding: 6px 12px; background: ${parking.isOpen ? '#ecfdf5' : '#fef2f2'}; color: ${parking.isOpen ? '#059669' : '#dc2626'}; border-radius: 8px; font-size: 13px; font-weight: 700;">
+              ${parking.isOpen ? '● ĐANG MỞ' : '● ĐÃ ĐÓNG'}
+            </span>
+            <button onclick="window.showParkingDetails('${parking.id}')" style="background:#5B45D9;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:0 2px 4px rgba(91,69,217,0.2);">Chi tiết →</button>
+          </div>
+        </div>
+      `;
+
+      let marker = parkingMarkersRef.current.get(parking.id);
+
+      if (marker) {
+        marker.setLatLng([parking.latitude, parking.longitude]);
+        marker.setIcon(parkingIcon);
+        marker.setPopupContent(popupContent);
+        marker.setZIndexOffset(isRecommended ? 1000 : 0);
+      } else {
+        marker = window.L.marker([parking.latitude, parking.longitude], {
+          icon: parkingIcon,
+          zIndexOffset: isRecommended ? 1000 : 0,
+        })
+          .addTo(map)
+          .bindPopup(popupContent);
+
+        marker.on('click', () => {
+          try {
+            console.log('Marker clicked:', parking.name);
+            if (onSelectRef.current) {
+              const latest = parkingLotsRef.current.find(p => p.id === parking.id) || parking;
+              onSelectRef.current(latest);
+            }
+          } catch (error) {
+            console.error('Error in marker click handler:', error);
+          }
+        });
+
+        parkingMarkersRef.current.set(parking.id, marker);
+      }
+    });
+  };
+
+  const initializeMap = () => {
+    if (!containerRef.current || !window.L) {
+      console.log('Map container or Leaflet not available');
+      return;
+    }
+    // Only initialize the base map once
+    if (mapInstanceRef.current) {
+      return;
+    }
+
+    try {
+      console.log('Initializing map...');
+      containerRef.current.innerHTML = '';
+
+      const currentUserLocation = userLocationRef.current;
+      const center = currentUserLocation
+        ? [currentUserLocation.latitude, currentUserLocation.longitude]
+        : [21.0046655, 105.8443058];
+
+      const map = window.L.map(containerRef.current).setView(center, 20);
+
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+      console.log('Base map created');
+
+      updateMarkers(map);
+      console.log('Map initialized successfully');
+    } catch (error) {
+      console.error('Error initializing map:', error);
+    }
+  };
+
+  const initializeMapRef = useRef(initializeMap);
+  initializeMapRef.current = initializeMap;
 
   useEffect(() => {
     if (!containerRef.current || typeof window === 'undefined') return;
-
-    const container = containerRef.current;
-    container.innerHTML = '';
 
     if (!document.getElementById(MAP_STYLE_ID)) {
       const style = document.createElement('style');
@@ -81,130 +255,13 @@ export default function MapView({ parkingLots, userLocation, recommendedParkingI
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 
     script.onload = () => {
-      try {
-        const L = (window as any).L;
-        if (!L) {
-          console.error('Leaflet not loaded');
-          return;
+      console.log('Leaflet script loaded');
+      setMapLoaded(true);
+      setTimeout(() => {
+        if (initializeMapRef.current) {
+          initializeMapRef.current();
         }
-
-        let map = mapInstanceRef.current;
-
-        if (!map) {
-          container.innerHTML = '';
-
-          // Initialize map
-          const center = userLocation
-            ? [userLocation.latitude, userLocation.longitude]
-            : [21.0046655, 105.8443058];
-          map = L.map(container).setView(center, 20);
-
-          // Add tile layer
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-          }).addTo(map);
-
-          mapInstanceRef.current = map;
-        } else {
-          // Clear existing markers
-          markersRef.current.forEach(marker => marker.remove());
-          markersRef.current = [];
-        }
-
-        // Add user location marker
-        if (userLocation) {
-          const userIcon = L.divIcon({
-            html: '<div style="background:#6366f1;color:white;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:4px solid white;box-shadow:0 4px 12px rgba(99, 102, 241, 0.4);font-size:18px;">👤</div>',
-            className: 'user-marker',
-            iconSize: [40, 40],
-          });
-
-          const userMarker = L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon })
-            .addTo(map)
-            .bindPopup('Vị trí của bạn');
-
-          markersRef.current.push(userMarker);
-        }
-
-        // Add parking lot markers
-        parkingLots.forEach(parking => {
-          const availability = parking.availableSpaces / parking.totalSpaces;
-          let color = '#10b981'; // Green
-          const isRecommended = recommendedParkingId === parking.id;
-
-          if (availability < 0.1) {
-            color = '#ef4444'; // Red
-          } else if (availability < 0.3) {
-            color = '#f59e0b'; // Amber
-          }
-
-          const parkingIcon = L.divIcon({
-            html: isRecommended
-              ? `
-                <div class="recommended-marker">
-                  <div class="recommended-pulse"></div>
-                  <div class="recommended-badge" style="background:#0ea5e9;">${parking.availableSpaces}</div>
-                </div>
-              `
-              : `<div style="background:${color};color:white;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-weight:bold;font-size:15px;">${parking.availableSpaces}</div>`,
-            className: isRecommended ? 'parking-marker recommended' : 'parking-marker',
-            iconSize: isRecommended ? [52, 52] : [44, 44],
-          });
-
-          const marker = L.marker([parking.latitude, parking.longitude], {
-            icon: parkingIcon,
-            zIndexOffset: isRecommended ? 1000 : 0,
-          })
-            .addTo(map)
-            .bindPopup(`
-              <div style="min-width: 240px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-                  ${parking.name}
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">Chỗ trống:</span>
-                  <span style="font-weight: 700; color: ${color}; font-size: 15px;">${parking.availableSpaces}/${parking.totalSpaces}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">Giá:</span>
-                  <span style="font-weight: 700; color: #6366f1; font-size: 15px;">${parking.pricePerHour.toLocaleString('vi-VN')}đ/Lượt</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">Khoảng cách:</span>
-                  <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.distance ? formatDistance(parking.distance) : '---'}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                  <span style="color: #64748b; font-size: 14px;">Đánh giá:</span>
-                  <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.rating ? '⭐ ' + parking.rating.toFixed(1) : 'N/A'}</span>
-                </div>
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                  <span style="display: inline-block; padding: 6px 12px; background: ${parking.isOpen ? '#ecfdf5' : '#fef2f2'}; color: ${parking.isOpen ? '#059669' : '#dc2626'}; border-radius: 8px; font-size: 13px; font-weight: 700;">
-                    ${parking.isOpen ? '● ĐANG MỞ' : '● ĐÃ ĐÓNG'}
-                  </span>
-                  <button onclick="window.showParkingDetails('${parking.id}')" style="background:#5B45D9;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:0 2px 4px rgba(91,69,217,0.2);">Chi tiết →</button>
-                </div>
-              </div>
-            `);
-
-          // Add click event with error handling
-          marker.on('click', () => {
-            try {
-              console.log('Marker clicked:', parking.name);
-              if (onSelectRef.current) {
-                onSelectRef.current(parking);
-              }
-            } catch (error) {
-              console.error('Error in marker click handler:', error);
-            }
-          });
-
-          markersRef.current.push(marker);
-        });
-
-        console.log('Map initialized successfully');
-      } catch (error) {
-        console.error('Error initializing map:', error);
-      }
+      }, 100);
     };
 
     script.onerror = () => {
@@ -224,7 +281,16 @@ export default function MapView({ parkingLots, userLocation, recommendedParkingI
         }
         mapInstanceRef.current = null;
       }
+      parkingMarkersRef.current.clear();
+      userMarkerRef.current = null;
     };
+  }, []);
+
+  // Update markers when parking lots, recommended parking, or user location changes
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      updateMarkers(mapInstanceRef.current);
+    }
   }, [parkingLots, recommendedParkingId, userLocation]);
 
   return (

@@ -71,6 +71,35 @@ export const mockParkingLots: ParkingLot[] = [
     features: ['Mở cửa 6h-22h', 'Gần công viên'],
     lastUpdated: new Date(),
   },
+  {
+    id: '6',
+    name: 'Bãi đỗ xe B1',
+    address: 'Sân B1 ĐH Bách Khoa Hà Nội',
+    latitude: 21.004759,
+    longitude: 105.846408,
+    totalSpaces: 234,
+    availableSpaces: 140,
+    pricePerHour: 3000,
+    isOpen: true,
+    rating: 3.7,
+    features: ['Mở cửa 6h-22h', 'Gần công viên'],
+    lastUpdated: new Date(),
+  },
+  {
+    id: '7',
+    name: 'Bãi đỗ xe KTX B6',
+    address: 'Ktx B6 ĐH Bách Khoa Hà Nội',
+    latitude: 21.006445,
+    longitude: 105.846091,
+    totalSpaces: 120,
+    availableSpaces: 60,
+    pricePerHour: 3000,
+    isOpen: true,
+    rating: 4.7,
+    features: ['Mở cửa 6h-22h', 'Gần công viên'],
+    lastUpdated: new Date(),
+  },
+
 ];
 
 export const calculateDistance = (
