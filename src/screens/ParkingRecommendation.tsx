@@ -11,6 +11,7 @@ interface ParkingRecommendationProps {
   language: 'vi' | 'en' | 'ja';
   onRecommendationSelect: (recommendation: RecommendationType) => void;
   onDetailSelect: (parkingLot: ParkingLot) => void;
+  hasDestination?: boolean;
 }
 
 const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
@@ -18,6 +19,7 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
   language,
   onRecommendationSelect,
   onDetailSelect,
+  hasDestination = false,
 }) => {
   const { colors } = useTheme();
   const t = useTranslation(language);
@@ -75,9 +77,13 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
             </View>
 
             <View style={[parkingRecommendationStyles.statItem, { backgroundColor: colors.background }]}>
-              <Ionicons name="navigate-outline" size={20} color={colors.textSecondary} />
-              <Text style={[parkingRecommendationStyles.statLabel, { color: colors.textSecondary }]}>{t.recommend.distance}</Text>
-              <Text style={[parkingRecommendationStyles.statValue, { color: colors.text }]}>{formatDistance(recommendation.distance)}</Text>
+              <Ionicons name={hasDestination ? "walk" : "navigate-outline"} size={20} color={colors.textSecondary} />
+              <Text style={[parkingRecommendationStyles.statLabel, { color: colors.textSecondary }]}>
+                {hasDestination ? t.recommend.walkingDistance : t.recommend.distance}
+              </Text>
+              <Text style={[parkingRecommendationStyles.statValue, { color: colors.text }]}>
+                {formatDistance(hasDestination ? (recommendation.walkingDistance || recommendation.distance) : recommendation.distance)}
+              </Text>
             </View>
 
             <View style={[parkingRecommendationStyles.statItem, { backgroundColor: colors.background }]}>
@@ -86,6 +92,16 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
               <Text style={[parkingRecommendationStyles.statValue, { color: colors.text }]}>{recommendation.estimatedTime}ph</Text>
             </View>
           </View>
+
+          {hasDestination && (
+            <View style={[localStyles.segmentContainer, { backgroundColor: colors.background }]}>
+              <Text style={[localStyles.segmentText, { color: colors.textSecondary }]}>
+                🚗 {t.recommend.drivingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(recommendation.drivingDistance || 0)}</Text>
+                {'   •   '}
+                🚶 {t.recommend.walkingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(recommendation.walkingDistance || 0)}</Text>
+              </Text>
+            </View>
+          )}
 
           <View style={[parkingRecommendationStyles.priceSection, { backgroundColor: colors.background }]}>
             <Text style={[parkingRecommendationStyles.priceLabel, { color: colors.textSecondary }]}>{t.recommend.price}:</Text>
@@ -142,6 +158,23 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
     </ScrollView>
   );
 };
+
+const localStyles = StyleSheet.create({
+  segmentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+});
 
 export default ParkingRecommendationComponent;
 
