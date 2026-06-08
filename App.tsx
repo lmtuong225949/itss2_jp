@@ -28,6 +28,8 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<'map' | 'list' | 'recommend'>('recommend');
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [viewingDetails, setViewingDetails] = useState<ParkingLot | null>(null);
+  const [criteria, setCriteria] = useState<'balanced' | 'closest' | 'cheapest' | 'empty'>('balanced');
+  const [activeRouteParkingId, setActiveRouteParkingId] = useState<string | null>(null);
 
   // Destination Search States
   const [destination, setDestination] = useState<Destination | null>(null);
@@ -111,14 +113,31 @@ function AppContent() {
 
   const DEFAULT_LOCATION: UserLocation = { latitude: 21.0046655, longitude: 105.8443058 };
 
-  const refreshParkingData = useCallback(async (location: UserLocation, dest: Destination | null = null) => {
+  const refreshParkingData = useCallback(async (location: UserLocation, dest: Destination | null = null, currentCriteria = criteria, resetRoute = false) => {
     const refLocation = dest ? { latitude: dest.latitude, longitude: dest.longitude } : location;
     const nearbyLots = await parkingService.getNearbyParkingLots(refLocation, location);
     setParkingLots(nearbyLots);
 
-    const recs = await parkingService.getParkingRecommendations(location, dest ? { latitude: dest.latitude, longitude: dest.longitude } : null);
+    const recs = await parkingService.getParkingRecommendations(
+      location,
+      dest ? { latitude: dest.latitude, longitude: dest.longitude } : null,
+      5,
+      currentCriteria
+    );
     setRecommendations(recs);
-  }, [parkingService]);
+
+    // Auto-select or preserve the route target
+    if (recs.length > 0) {
+      setActiveRouteParkingId(prev => {
+        if (!resetRoute && prev && nearbyLots.some(p => p.id === prev)) {
+          return prev;
+        }
+        return recs[0].parkingLot.id;
+      });
+    } else {
+      setActiveRouteParkingId(null);
+    }
+  }, [parkingService, criteria]);
 
   const handleUpdateParkingCoords = useCallback((id: string, lat: number, lon: number) => {
     // Update coordinates in ParkingService so logic functions use them
@@ -138,6 +157,10 @@ function AppContent() {
       refreshParkingData(userLocation, destination);
     }
   }, [userLocation, destination, refreshParkingData]);
+
+  const handleUpdateUserLocation = useCallback((location: UserLocation) => {
+    setUserLocation(location);
+  }, []);
 
   const requestUserLocation = async (): Promise<UserLocation> => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -178,7 +201,7 @@ function AppContent() {
     initializeApp();
   }, []);
 
-  // Update parking slot occupancy updates periodically
+  // Update parking slot occupancy updates periodically (preserve selection)
   useEffect(() => {
     if (!userLocation) return;
 
@@ -190,28 +213,42 @@ function AppContent() {
       const change = Math.random() > 0.5 ? magnitude : -magnitude;
 
       await parkingService.updateParkingLotAvailability(target.id, change);
-      await refreshParkingData(userLocation, destination);
+      await refreshParkingData(userLocation, destination, criteria, false);
     }, 6000);
 
     return () => clearInterval(intervalId);
-  }, [parkingLots, parkingService, refreshParkingData, userLocation, destination]);
+  }, [parkingLots, parkingService, refreshParkingData, userLocation, destination, criteria]);
 
-  // Update data when destination changes
+  // Update data when destination or criteria changes (reset selection)
   useEffect(() => {
     if (userLocation) {
-      refreshParkingData(userLocation, destination);
+      refreshParkingData(userLocation, destination, criteria, true);
     }
-  }, [destination, userLocation]);
+  }, [destination, userLocation, criteria]);
 
   const handleRecommendationSelect = useCallback((recommendation: RecommendationType) => {
     setSelectedParking(recommendation.parkingLot);
+    setActiveRouteParkingId(recommendation.parkingLot.id);
+    setViewingDetails(recommendation.parkingLot);
     setActiveTab('map');
   }, []);
 
   const handleParkingSelect = useCallback((parking: ParkingLot) => {
     setSelectedParking(parking);
+    setActiveRouteParkingId(parking.id);
     setViewingDetails(parking);
+    setActiveTab('map');
   }, []);
+
+  const handleSelectRouteParking = useCallback((id: string) => {
+    setActiveRouteParkingId(id);
+    if (viewingDetails) {
+      const parking = parkingLots.find(p => p.id === id);
+      if (parking) {
+        setViewingDetails(parking);
+      }
+    }
+  }, [viewingDetails, parkingLots]);
 
   const selectDestination = (dest: Destination) => {
     setDestination(dest);
@@ -278,20 +315,39 @@ function AppContent() {
     switch (activeTab) {
       case 'map':
         return (
-          <MapView
-            parkingLots={parkingLots}
-            userLocation={userLocation}
-            recommendedParkingId={recommendations[0]?.parkingLot.id}
-            onSelect={handleParkingSelect}
-            destinationLocation={destination ? { latitude: destination.latitude, longitude: destination.longitude } : null}
-            destinationName={destination ? destination.name : null}
-            onMapClick={handleMapClick}
-            showAllDestinations={showAllDestinationsOnMap}
-            destinationsList={editableDestinations}
-            onUpdateDestinationCoords={handleUpdateDestinationCoords}
-            editParkingMode={showAllParkingOnMap}
-            onUpdateParkingCoords={handleUpdateParkingCoords}
-          />
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+            {viewingDetails && (
+              <View style={{ width: 380, borderRightWidth: 1, borderRightColor: colors.border }}>
+                <ParkingDetailScreen
+                  parkingLot={viewingDetails}
+                  onBack={() => setViewingDetails(null)}
+                  onShowOnMap={(parkingLot) => {
+                    setSelectedParking(parkingLot);
+                    setActiveRouteParkingId(parkingLot.id);
+                  }}
+                  isSidebar={true}
+                />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <MapView
+                parkingLots={parkingLots}
+                userLocation={userLocation}
+                recommendedParkingId={activeRouteParkingId || recommendations[0]?.parkingLot.id}
+                onSelect={handleParkingSelect}
+                destinationLocation={destination ? { latitude: destination.latitude, longitude: destination.longitude } : null}
+                destinationName={destination ? destination.name : null}
+                onMapClick={handleMapClick}
+                showAllDestinations={showAllDestinationsOnMap}
+                destinationsList={editableDestinations}
+                onUpdateDestinationCoords={handleUpdateDestinationCoords}
+                editParkingMode={showAllParkingOnMap}
+                onUpdateParkingCoords={handleUpdateParkingCoords}
+                onSelectRouteParking={handleSelectRouteParking}
+                onUpdateUserLocation={handleUpdateUserLocation}
+              />
+            </View>
+          </View>
         );
       case 'list':
         return (
@@ -306,17 +362,10 @@ function AppContent() {
       case 'recommend':
         return (
           <View style={recommendStyles.recommendContainer}>
-            <View style={recommendStyles.recommendHeader}>
-              <Text style={[recommendStyles.recommendTitle, { color: colors.text }]}>{t.recommend.title}</Text>
-              <Text style={[recommendStyles.recommendSubtitle, { color: colors.textSecondary }]}>
-                {destination ? `${t.recommend.routeTo} ${destination.name}` : t.recommend.subtitle}
-              </Text>
-            </View>
             <ParkingRecommendationComponent
               recommendations={recommendations}
               language={language}
               onRecommendationSelect={handleRecommendationSelect}
-              onDetailSelect={handleParkingSelect}
               hasDestination={!!destination}
             />
           </View>
@@ -326,19 +375,7 @@ function AppContent() {
     }
   };
 
-  if (viewingDetails) {
-    return (
-      <ParkingDetailScreen
-        parkingLot={viewingDetails}
-        onBack={() => setViewingDetails(null)}
-        onShowOnMap={(parkingLot) => {
-          setSelectedParking(parkingLot);
-          setViewingDetails(null);
-          setActiveTab('map');
-        }}
-      />
-    );
-  }
+
 
   return (
     <SafeAreaView style={[commonStyles.container, { backgroundColor: colors.background }]}>
@@ -359,50 +396,76 @@ function AppContent() {
       {/* Destination Search Bar Component */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
         {!(showAllDestinationsOnMap || showAllParkingOnMap) && (
-          <>
-            <Input
-              placeholder={t.recommend.searchPlaceholder}
-              value={searchQuery}
-              onChangeText={(text) => {
-                setSearchQuery(text);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              leftIcon={<Ionicons name="search" size={20} color={colors.textSecondary} />}
-              rightIcon={
-                searchQuery ? (
-                  <TouchableOpacity onPress={clearDestination}>
-                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ) : null
-              }
-              style={styles.searchInput}
-            />
-            {showSuggestions && searchQuery.length > 0 && (
-              <View style={[styles.suggestionsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
-                  {filteredDestinations.map((dest) => (
-                    <TouchableOpacity
-                      key={dest.id}
-                      style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
-                      onPress={() => selectDestination(dest)}
-                    >
-                      <Ionicons name="location-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.suggestionName, { color: colors.text }]}>{dest.name}</Text>
-                        <Text style={[styles.suggestionAddress, { color: colors.textSecondary }]} numberOfLines={1}>{dest.address}</Text>
-                      </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flex: 1, position: 'relative' }}>
+              <Input
+                placeholder={t.recommend.searchPlaceholder}
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                leftIcon={<Ionicons name="search" size={20} color={colors.textSecondary} />}
+                rightIcon={
+                  searchQuery ? (
+                    <TouchableOpacity onPress={clearDestination}>
+                      <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                     </TouchableOpacity>
-                  ))}
-                  {filteredDestinations.length === 0 && (
-                    <View style={styles.emptySuggestion}>
-                      <Text style={{ color: colors.textSecondary }}>Không tìm thấy địa điểm</Text>
-                    </View>
-                  )}
-                </ScrollView>
-              </View>
-            )}
-          </>
+                  ) : null
+                }
+                style={styles.searchInput}
+              />
+              {showSuggestions && searchQuery.length > 0 && (
+                <View style={[styles.suggestionsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <ScrollView style={{ maxHeight: 200 }} keyboardShouldPersistTaps="handled">
+                    {filteredDestinations.map((dest) => (
+                      <TouchableOpacity
+                        key={dest.id}
+                        style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
+                        onPress={() => selectDestination(dest)}
+                      >
+                        <Ionicons name="location-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.suggestionName, { color: colors.text }]}>{dest.name}</Text>
+                          <Text style={[styles.suggestionAddress, { color: colors.textSecondary }]} numberOfLines={1}>{dest.address}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                    {filteredDestinations.length === 0 && (
+                      <View style={styles.emptySuggestion}>
+                        <Text style={{ color: colors.textSecondary }}>Không tìm thấy địa điểm</Text>
+                      </View>
+                    )}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+            
+            {/* Criteria Mini Selector */}
+            <View style={[styles.miniCriteriaSelector, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <select
+                value={criteria}
+                onChange={(e) => setCriteria(e.target.value as any)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: colors.text,
+                  fontSize: 13,
+                  fontWeight: '700',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="balanced" style={{ background: colors.card, color: colors.text }}>⚖️ {(t.recommend as any).criteria?.balanced}</option>
+                <option value="closest" style={{ background: colors.card, color: colors.text }}>📍 {(t.recommend as any).criteria?.closest}</option>
+                <option value="cheapest" style={{ background: colors.card, color: colors.text }}>💵 {(t.recommend as any).criteria?.cheapest}</option>
+                <option value="empty" style={{ background: colors.card, color: colors.text }}>🚗 {(t.recommend as any).criteria?.empty}</option>
+              </select>
+            </View>
+          </View>
         )}
       </View>
 
@@ -537,9 +600,9 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     position: 'absolute',
-    top: 62,
-    left: 16,
-    right: 16,
+    top: 52,
+    left: 0,
+    right: 0,
     borderRadius: 12,
     borderWidth: 1,
     elevation: 5,
@@ -548,6 +611,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     zIndex: 999,
+  },
+  miniCriteriaSelector: {
+    borderWidth: 1,
+    borderRadius: 12,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
   },
   suggestionItem: {
     flexDirection: 'row',

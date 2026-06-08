@@ -14,8 +14,8 @@ export class ParkingService {
 
   // Lấy tất cả bãi đỗ xe
   async getAllParkingLots(): Promise<ParkingLot[]> {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Simulate API call (resolved instantly to prevent focus lagging on destination change)
+    await Promise.resolve();
 
     return this.parkingLots.map(parking => ({
       ...parking,
@@ -61,7 +61,8 @@ export class ParkingService {
   async getParkingRecommendations(
     userLocation: UserLocation,
     destination: UserLocation | null = null,
-    maxDistance: number = 5
+    maxDistance: number = 5,
+    criteria: 'balanced' | 'closest' | 'cheapest' | 'empty' = 'balanced'
   ): Promise<ParkingRecommendation[]> {
     const reference = destination || userLocation;
     const nearbyLots = await this.getNearbyParkingLots(reference, userLocation);
@@ -77,12 +78,33 @@ export class ParkingService {
         const priceScore = this.calculatePriceScore(parking.pricePerHour);
         const ratingScore = this.calculateRatingScore(parking.rating || 0);
 
-        const overallScore = (
-          distanceScore * 0.5 +
-          availabilityScore * 0.3 +
-          priceScore * 0.1 +
-          ratingScore * 0.1
-        );
+        let overallScore = 0;
+        if (criteria === 'closest') {
+          overallScore = (
+            distanceScore * 0.85 +
+            availabilityScore * 0.10 +
+            priceScore * 0.05
+          );
+        } else if (criteria === 'cheapest') {
+          overallScore = (
+            priceScore * 0.85 +
+            distanceScore * 0.10 +
+            availabilityScore * 0.05
+          );
+        } else if (criteria === 'empty') {
+          overallScore = (
+            availabilityScore * 0.85 +
+            distanceScore * 0.10 +
+            priceScore * 0.05
+          );
+        } else {
+          overallScore = (
+            distanceScore * 0.40 +
+            availabilityScore * 0.30 +
+            priceScore * 0.20 +
+            ratingScore * 0.10
+          );
+        }
 
         let estimatedTime = 0;
         let walkingDistance = 0;
@@ -102,7 +124,7 @@ export class ParkingService {
           distance: parking.distance || 0,
           estimatedTime,
           availabilityScore: overallScore,
-          reasonKeys: this.generateRecommendationReason(parking, overallScore, !!destination),
+          reasonKeys: this.generateRecommendationReason(parking, overallScore, !!destination, criteria),
           walkingDistance: destination ? walkingDistance : undefined,
           drivingDistance: destination ? drivingDistance : undefined,
         };
@@ -111,24 +133,16 @@ export class ParkingService {
       .slice(0, 5); // Top 5 recommendations
   }
 
-  // Tính điểm độ phù hợp về chỗ trống
+  // Tính điểm độ phù hợp về chỗ trống (continuous, factoring ratio and absolute space count)
   private calculateAvailabilityScore(parking: ParkingLot): number {
-    const availabilityRatio = parking.availableSpaces / parking.totalSpaces;
-
-    if (availabilityRatio > 0.5) return 1.0;
-    if (availabilityRatio > 0.3) return 0.8;
-    if (availabilityRatio > 0.1) return 0.6;
-    return 0.3;
+    const ratio = parking.availableSpaces / parking.totalSpaces;
+    const absoluteFactor = Math.min(1.0, parking.availableSpaces / 150);
+    return ratio * 0.5 + absoluteFactor * 0.5;
   }
 
-  // Tính điểm độ phù hợp về khoảng cách (granular for university campus scale)
+  // Tính điểm độ phù hợp về khoảng cách (continuous decay to distinguish granular campus distances)
   private calculateDistanceScore(distance: number): number {
-    if (distance <= 0.1) return 1.0;
-    if (distance <= 0.2) return 0.85;
-    if (distance <= 0.3) return 0.7;
-    if (distance <= 0.5) return 0.5;
-    if (distance <= 1.0) return 0.2;
-    return 0.05;
+    return Math.exp(-2.5 * distance);
   }
 
   // Tính điểm độ phù hợp về giá
@@ -151,22 +165,36 @@ export class ParkingService {
   }
 
   // Tạo lý do gợi ý (trả về mảng các key translation)
-  private generateRecommendationReason(parking: ParkingLot, score: number, isDestination: boolean = false): string[] {
+  private generateRecommendationReason(
+    parking: ParkingLot,
+    score: number,
+    isDestination: boolean = false,
+    criteria: 'balanced' | 'closest' | 'cheapest' | 'empty' = 'balanced'
+  ): string[] {
     const reasons: string[] = [];
 
-    if (parking.availableSpaces / parking.totalSpaces > 0.5) {
+    // Prioritize criteria-based reasons first
+    if (criteria === 'closest' && parking.distance && parking.distance < 0.3) {
+      reasons.push('nearby');
+    } else if (criteria === 'cheapest' && parking.pricePerHour <= 5000) {
+      reasons.push('cheapPrice');
+    } else if (criteria === 'empty' && (parking.availableSpaces / parking.totalSpaces > 0.4)) {
       reasons.push('manySpaces');
     }
 
-    if (parking.distance && parking.distance < 2) {
+    if (parking.availableSpaces / parking.totalSpaces > 0.5 && !reasons.includes('manySpaces')) {
+      reasons.push('manySpaces');
+    }
+
+    if (parking.distance && parking.distance < 2 && !reasons.includes('nearby')) {
       reasons.push('nearby');
     }
 
-    if (parking.pricePerHour <= 10000) {
+    if (parking.pricePerHour <= 10000 && !reasons.includes('cheapPrice')) {
       reasons.push('cheapPrice');
     }
 
-    if (parking.rating && parking.rating >= 4.0) {
+    if (parking.rating && parking.rating >= 4.0 && !reasons.includes('highRating')) {
       reasons.push('highRating');
     }
 

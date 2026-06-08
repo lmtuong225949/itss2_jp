@@ -1,8 +1,14 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 export const commonStyles = StyleSheet.create({
   container: {
     flex: 1,
+    ...Platform.select({
+      web: {
+        height: '100vh',
+        overflow: 'hidden',
+      } as any,
+    }),
   },
   tabContainer: {
     flexDirection: 'row',
@@ -43,17 +49,5 @@ export const recommendStyles = StyleSheet.create({
   recommendContainer: {
     flex: 1,
     padding: 16,
-  },
-  recommendHeader: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  recommendTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  recommendSubtitle: {
-    fontSize: 14,
   },
 });
