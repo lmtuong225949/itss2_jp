@@ -404,51 +404,6 @@ function AppContent() {
             )}
           </>
         )}
-        <View style={styles.debugRow}>
-          {!showAllParkingOnMap && (
-            <TouchableOpacity
-              onPress={toggleShowAllDestinations}
-              style={[
-                styles.debugButton,
-                { borderColor: colors.primary, marginRight: 8 },
-                showAllDestinationsOnMap && { backgroundColor: colors.primary }
-              ]}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={showAllDestinationsOnMap ? "eye" : "eye-outline"}
-                size={14}
-                color={showAllDestinationsOnMap ? '#fff' : colors.primary}
-                style={{ marginRight: 6 }}
-              />
-              <Text style={[styles.debugButtonText, { color: showAllDestinationsOnMap ? '#fff' : colors.primary }]}>
-                {showAllDestinationsOnMap ? "Ẩn địa điểm" : "Hiệu chỉnh Địa điểm"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {!showAllDestinationsOnMap && (
-            <TouchableOpacity
-              onPress={toggleShowAllParking}
-              style={[
-                styles.debugButton,
-                { borderColor: colors.secondary },
-                showAllParkingOnMap && { backgroundColor: colors.secondary }
-              ]}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={showAllParkingOnMap ? "eye" : "eye-outline"}
-                size={14}
-                color={showAllParkingOnMap ? '#fff' : colors.secondary}
-                style={{ marginRight: 6 }}
-              />
-              <Text style={[styles.debugButtonText, { color: showAllParkingOnMap ? '#fff' : colors.secondary }]}>
-                {showAllParkingOnMap ? "Ẩn bãi đỗ xe" : "Hiệu chỉnh Bãi đỗ xe"}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
       </View>
 
       {!showAllDestinationsOnMap && (
@@ -523,11 +478,11 @@ function AppContent() {
                 />
               </TouchableOpacity>
             </View>
-            
+
             {!exporterCollapsed && (
               <>
                 <Text style={[styles.exporterDesc, { color: colors.textSecondary }]}>
-                  {showAllDestinationsOnMap 
+                  {showAllDestinationsOnMap
                     ? "Kéo các nhãn địa điểm trên bản đồ để sửa tọa độ. Đoạn mã dưới đây tự động cập nhật theo thời gian thực:"
                     : "Kéo các vòng tròn bãi đỗ xe trên bản đồ để sửa tọa độ. Đoạn mã dưới đây tự động cập nhật theo thời gian thực:"
                   }
