@@ -9,6 +9,7 @@ export interface ParkingLot {
   pricePerHour: number;
   isOpen: boolean;
   distance?: number;
+  drivingDistance?: number;
   rating?: number;
   features: string[];
   lastUpdated: Date;
@@ -27,10 +28,21 @@ export interface UserLocation {
   longitude: number;
 }
 
+export interface Destination {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface ParkingRecommendation {
   parkingLot: ParkingLot;
-  distance: number;
+  distance: number; // distance to user location or destination
   estimatedTime: number;
   availabilityScore: number;
   reasonKeys: string[];
+  walkingDistance?: number; // from parking to destination
+  drivingDistance?: number; // from user to parking
 }
+

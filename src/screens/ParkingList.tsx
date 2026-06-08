@@ -11,6 +11,7 @@ interface ParkingListProps {
   selectedParking: ParkingLot | null;
   language: 'vi' | 'en' | 'ja';
   onParkingSelect: (parking: ParkingLot) => void;
+  hasDestination?: boolean;
 }
 
 const ParkingList: React.FC<ParkingListProps> = ({
@@ -18,6 +19,7 @@ const ParkingList: React.FC<ParkingListProps> = ({
   selectedParking,
   language,
   onParkingSelect,
+  hasDestination = false,
 }) => {
   const { colors } = useTheme();
   const t = useTranslation(language);
@@ -121,16 +123,28 @@ const ParkingList: React.FC<ParkingListProps> = ({
 
             <View style={parkingListStyles.statItem}>
               <View style={parkingListStyles.statIcon}>
-                <Ionicons name="navigate-outline" size={20} color={colors.textSecondary} />
+                <Ionicons name={hasDestination ? "walk" : "navigate-outline"} size={20} color={colors.textSecondary} />
               </View>
               <View>
                 <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
                   {parking.distance ? formatDistance(parking.distance) : '---'}
                 </Text>
-                <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>{t.list.distance}</Text>
+                <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>
+                  {hasDestination ? t.recommend.walkingDistance : t.list.distance}
+                </Text>
               </View>
             </View>
           </View>
+
+          {hasDestination && (
+            <View style={[localStyles.segmentRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Text style={[localStyles.segmentText, { color: colors.textSecondary }]}>
+                🚗 {t.recommend.drivingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(parking.drivingDistance || 0)}</Text>
+                {'   •   '}
+                🚶 {t.recommend.walkingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(parking.distance || 0)}</Text>
+              </Text>
+            </View>
+          )}
           <View style={parkingListStyles.featuresRow}>
             {parking.features.slice(0, 3).map((feature, index) => (
               <View key={index} style={parkingListStyles.featureTag}>
@@ -165,5 +179,22 @@ const ParkingList: React.FC<ParkingListProps> = ({
     </ScrollView>
   );
 };
+
+const localStyles = StyleSheet.create({
+  segmentRow: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+});
 
 export default ParkingList;

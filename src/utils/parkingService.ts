@@ -1,5 +1,5 @@
 import { ParkingLot, UserLocation, ParkingRecommendation } from '../types/parking';
-import { mockParkingLots, calculateDistance } from '../../data/mockData';
+import { mockParkingLots, calculateDistance } from '../data/mockData';
 
 export class ParkingService {
   private static instance: ParkingService;
@@ -23,29 +23,48 @@ export class ParkingService {
     }));
   }
 
-  // Lấy bãi đỗ xe gần người dùng
-  async getNearbyParkingLots(userLocation: UserLocation): Promise<ParkingLot[]> {
+  // Lấy bãi đỗ xe gần người dùng hoặc điểm đến
+  async getNearbyParkingLots(
+    referenceLocation: UserLocation,
+    userLocation?: UserLocation | null
+  ): Promise<ParkingLot[]> {
     const allLots = await this.getAllParkingLots();
 
     return allLots
-      .map(parking => ({
-        ...parking,
-        distance: calculateDistance(
-          userLocation.latitude,
-          userLocation.longitude,
+      .map(parking => {
+        const distToReference = calculateDistance(
+          referenceLocation.latitude,
+          referenceLocation.longitude,
           parking.latitude,
           parking.longitude
-        ),
-      }))
+        );
+
+        const distToUser = userLocation
+          ? calculateDistance(
+              userLocation.latitude,
+              userLocation.longitude,
+              parking.latitude,
+              parking.longitude
+            )
+          : distToReference;
+
+        return {
+          ...parking,
+          distance: distToReference,
+          drivingDistance: distToUser,
+        };
+      })
       .sort((a, b) => (a.distance || 0) - (b.distance || 0));
   }
 
   // Lấy gợi ý bãi đỗ xe tốt nhất
   async getParkingRecommendations(
     userLocation: UserLocation,
+    destination: UserLocation | null = null,
     maxDistance: number = 5
   ): Promise<ParkingRecommendation[]> {
-    const nearbyLots = await this.getNearbyParkingLots(userLocation);
+    const reference = destination || userLocation;
+    const nearbyLots = await this.getNearbyParkingLots(reference, userLocation);
 
     return nearbyLots
       .filter(parking =>
@@ -59,18 +78,33 @@ export class ParkingService {
         const ratingScore = this.calculateRatingScore(parking.rating || 0);
 
         const overallScore = (
-          availabilityScore * 0.4 +
-          distanceScore * 0.3 +
-          priceScore * 0.2 +
+          distanceScore * 0.5 +
+          availabilityScore * 0.3 +
+          priceScore * 0.1 +
           ratingScore * 0.1
         );
+
+        let estimatedTime = 0;
+        let walkingDistance = 0;
+        let drivingDistance = parking.drivingDistance || parking.distance || 0;
+
+        if (destination) {
+          walkingDistance = parking.distance || 0;
+          const drivingTime = Math.ceil(drivingDistance * 2); // 30km/h
+          const walkingTime = Math.ceil(walkingDistance * 12); // 5km/h (12 mins per km)
+          estimatedTime = drivingTime + walkingTime;
+        } else {
+          estimatedTime = Math.ceil(drivingDistance * 2);
+        }
 
         return {
           parkingLot: parking,
           distance: parking.distance || 0,
-          estimatedTime: this.calculateEstimatedTime(parking.distance || 0),
+          estimatedTime,
           availabilityScore: overallScore,
-          reasonKeys: this.generateRecommendationReason(parking, overallScore),
+          reasonKeys: this.generateRecommendationReason(parking, overallScore, !!destination),
+          walkingDistance: destination ? walkingDistance : undefined,
+          drivingDistance: destination ? drivingDistance : undefined,
         };
       })
       .sort((a, b) => b.availabilityScore - a.availabilityScore)
@@ -87,13 +121,14 @@ export class ParkingService {
     return 0.3;
   }
 
-  // Tính điểm độ phù hợp về khoảng cách
+  // Tính điểm độ phù hợp về khoảng cách (granular for university campus scale)
   private calculateDistanceScore(distance: number): number {
-    if (distance <= 1) return 1.0;
-    if (distance <= 2) return 0.8;
-    if (distance <= 3) return 0.6;
-    if (distance <= 5) return 0.4;
-    return 0.2;
+    if (distance <= 0.1) return 1.0;
+    if (distance <= 0.2) return 0.85;
+    if (distance <= 0.3) return 0.7;
+    if (distance <= 0.5) return 0.5;
+    if (distance <= 1.0) return 0.2;
+    return 0.05;
   }
 
   // Tính điểm độ phù hợp về giá
@@ -116,7 +151,7 @@ export class ParkingService {
   }
 
   // Tạo lý do gợi ý (trả về mảng các key translation)
-  private generateRecommendationReason(parking: ParkingLot, score: number): string[] {
+  private generateRecommendationReason(parking: ParkingLot, score: number, isDestination: boolean = false): string[] {
     const reasons: string[] = [];
 
     if (parking.availableSpaces / parking.totalSpaces > 0.5) {
@@ -164,5 +199,14 @@ export class ParkingService {
       parking.name.toLowerCase().includes(lowerQuery) ||
       parking.address.toLowerCase().includes(lowerQuery)
     );
+  }
+
+  // Cập nhật tọa độ bãi đỗ xe
+  updateParkingLotCoordinates(parkingId: string, lat: number, lon: number): void {
+    const parking = this.parkingLots.find(p => p.id === parkingId);
+    if (parking) {
+      parking.latitude = lat;
+      parking.longitude = lon;
+    }
   }
 }
