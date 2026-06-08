@@ -93,11 +93,10 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
           </View>
 
           {hasDestination && (
-            <View style={[localStyles.segmentContainer, { backgroundColor: colors.background }]}>
+            <View style={[localStyles.segmentContainer, { backgroundColor: colors.background, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }]}>
+              <Ionicons name="car-outline" size={20} color={colors.textSecondary} />
               <Text style={[localStyles.segmentText, { color: colors.textSecondary }]}>
-                🚗 {t.recommend.drivingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(recommendation.drivingDistance || 0)}</Text>
-                {'   •   '}
-                🚶 {t.recommend.walkingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(recommendation.walkingDistance || 0)}</Text>
+                {t.recommend.drivingDistance}: <Text style={{ color: colors.text }}>{formatDistance(recommendation.drivingDistance || 0)}</Text>
               </Text>
             </View>
           )}

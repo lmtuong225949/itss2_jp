@@ -34,6 +34,7 @@ const fetchRoute = async (
 };
 
 interface MapProps {
+  selectedParking?: ParkingLot | null;
   parkingLots: ParkingLot[];
   userLocation: UserLocation | null;
   recommendedParkingId?: string;
@@ -55,6 +56,7 @@ interface MapProps {
 const MAP_STYLE_ID = 'parking-map-animations';
 
 export default function MapView({
+  selectedParking,
   parkingLots,
   userLocation,
   recommendedParkingId,
@@ -95,6 +97,7 @@ export default function MapView({
   const currentTargetParking = parkingLots.find(p => p.id === recommendedParkingId) || parkingLots[0];
 
   // Sync refs to avoid stale closures in timeouts and Leaflet events
+  const selectedParkingRef = useRef(selectedParking);
   const userLocationRef = useRef(userLocation);
   const parkingLotsRef = useRef(parkingLots);
   const recommendedParkingIdRef = useRef(recommendedParkingId);
@@ -112,6 +115,7 @@ export default function MapView({
   const onSelectRouteParkingRef = useRef(onSelectRouteParking);
   const onUpdateUserLocationRef = useRef(onUpdateUserLocation);
 
+  selectedParkingRef.current = selectedParking;
   userLocationRef.current = userLocation;
   parkingLotsRef.current = parkingLots;
   recommendedParkingIdRef.current = recommendedParkingId;
@@ -277,65 +281,15 @@ export default function MapView({
           iconSize: isRecommended ? [52, 52] : [44, 44],
         });
 
-        const isActiveRoute = currentRecommendedId === parking.id;
-        const routeButton = isActiveRoute
-          ? `<span style="display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 13px; font-weight: 700; width: 100%; text-align: center;">✓ Đang dẫn đường</span>`
-          : `<button onclick="window.setActiveRouteParking('${parking.id}')" style="background:#10b981;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:0 2px 4px rgba(16,185,129,0.2);width: 100%;">Chỉ đường đến đây →</button>`;
-
-        const popupContent = currentEditParkingMode
-          ? `
-            <div style="min-width: 200px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              <div style="font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
-                ${parking.name}
-              </div>
-              <div style="color: #64748b; font-size: 13px; margin-bottom: 8px;">
-                ${parking.address}
-              </div>
-              <small style="color:#6366f1;font-weight:bold;">📍 Kéo nút này để di chuyển bãi đỗ xe</small>
-            </div>
-          `
-          : `
-            <div style="min-width: 240px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              <div style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-                ${parking.name}
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                <span style="color: #64748b; font-size: 14px;">Chỗ trống:</span>
-                <span style="font-weight: 700; color: ${color}; font-size: 15px;">${parking.availableSpaces}/${parking.totalSpaces}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                <span style="color: #64748b; font-size: 14px;">Giá:</span>
-                <span style="font-weight: 700; color: #6366f1; font-size: 15px;">${parking.pricePerHour.toLocaleString('vi-VN')}đ/Lượt</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                <span style="color: #64748b; font-size: 14px;">Khoảng cách:</span>
-                <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.distance ? formatDistance(parking.distance) : '---'}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
-                <span style="color: #64748b; font-size: 14px;">Đánh giá:</span>
-                <span style="font-weight: 600; color: #1e293b; font-size: 15px;">${parking.rating ? '⭐ ' + parking.rating.toFixed(1) : 'N/A'}</span>
-              </div>
-              <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="display: inline-block; padding: 6px 12px; background: ${parking.isOpen ? '#ecfdf5' : '#fef2f2'}; color: ${parking.isOpen ? '#059669' : '#dc2626'}; border-radius: 8px; font-size: 13px; font-weight: 700;">
-                    ${parking.isOpen ? '● ĐANG MỞ' : '● ĐÃ ĐÓNG'}
-                  </span>
-                  <button onclick="window.showParkingDetails('${parking.id}')" style="background:#5B45D9;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:0 2px 4px rgba(91,69,217,0.2);">Chi tiết →</button>
-                </div>
-                <div style="margin-top: 4px;">
-                  ${routeButton}
-                </div>
-              </div>
-            </div>
-          `;
-
         let marker = parkingMarkersRef.current.get(parking.id);
 
         if (marker) {
           marker.setLatLng([parking.latitude, parking.longitude]);
           marker.setIcon(parkingIcon);
-          marker.setPopupContent(popupContent);
           marker.setZIndexOffset(isRecommended ? 1000 : 0);
+          if (marker.getPopup()) {
+            marker.unbindPopup();
+          }
           
           marker.off('click');
           marker.on('click', () => {
@@ -364,8 +318,7 @@ export default function MapView({
             zIndexOffset: isRecommended ? 1000 : 0,
             draggable: currentEditParkingMode
           })
-            .addTo(map)
-            .bindPopup(popupContent);
+            .addTo(map);
 
           marker.on('click', () => {
             if (editParkingModeRef.current) return;
@@ -449,8 +402,9 @@ export default function MapView({
         // Auto-fit bounds only when the route changes or detailed route loads
         const hasDetailedRoute = !!drivingRouteRef.current;
         const routeKey = `${currentUserLocation.latitude},${currentUserLocation.longitude}_${currentDestinationLocation.latitude},${currentDestinationLocation.longitude}_${targetParking.id}_${hasDetailedRoute}`;
+        const shouldFitBounds = !selectedParkingRef.current;
         
-        if (lastFittedRouteKeyRef.current !== routeKey) {
+        if (shouldFitBounds && lastFittedRouteKeyRef.current !== routeKey) {
           try {
             const bounds = window.L.latLngBounds([
               ...driveCoords,
@@ -535,15 +489,22 @@ export default function MapView({
       containerRef.current.innerHTML = '';
 
       const currentUserLocation = userLocationRef.current;
-      const isUserInHanoi = currentUserLocation &&
-                            currentUserLocation.latitude >= 20.94 &&
-                            currentUserLocation.latitude <= 21.07 &&
-                            currentUserLocation.longitude >= 105.77 &&
-                            currentUserLocation.longitude <= 105.91;
+      const currentSelectedParking = selectedParkingRef.current;
+      const currentDestinationLocation = destinationLocationRef.current;
 
-      const center = isUserInHanoi
-        ? [currentUserLocation.latitude, currentUserLocation.longitude]
-        : [21.0046655, 105.8443058];
+      let center = [21.0046655, 105.8443058];
+      let zoom = 15;
+
+      if (currentSelectedParking) {
+        center = [currentSelectedParking.latitude, currentSelectedParking.longitude];
+        zoom = 17;
+      } else if (currentDestinationLocation) {
+        center = [currentDestinationLocation.latitude, currentDestinationLocation.longitude];
+        zoom = 17;
+      } else if (currentUserLocation) {
+        center = [currentUserLocation.latitude, currentUserLocation.longitude];
+        zoom = 17;
+      }
 
       const hanoiBounds = [
         [20.94, 105.77], // South-West (SW)
@@ -553,7 +514,7 @@ export default function MapView({
       const map = window.L.map(containerRef.current, {
         maxBounds: hanoiBounds,
         maxBoundsViscosity: 1.0
-      }).setView(center, 20);
+      }).setView(center, zoom);
 
       window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -836,6 +797,13 @@ export default function MapView({
       updateMarkers(mapInstanceRef.current);
     }
   }, [parkingLots, recommendedParkingId, userLocation, destinationLocation, drivingRoute, walkingRoute, showAllDestinations, editParkingMode]);
+
+  // Zoom to selected parking lot when it changes
+  useEffect(() => {
+    if (selectedParking && mapInstanceRef.current) {
+      mapInstanceRef.current.setView([selectedParking.latitude, selectedParking.longitude], 17);
+    }
+  }, [selectedParking?.id, selectedParking?.latitude, selectedParking?.longitude]);
 
   return (
     <View style={styles.container}>

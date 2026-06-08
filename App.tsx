@@ -29,6 +29,7 @@ function AppContent() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [viewingDetails, setViewingDetails] = useState<ParkingLot | null>(null);
   const [criteria, setCriteria] = useState<'balanced' | 'closest' | 'cheapest' | 'empty'>('balanced');
+  const [criteriaDropdownVisible, setCriteriaDropdownVisible] = useState(false);
   const [activeRouteParkingId, setActiveRouteParkingId] = useState<string | null>(null);
 
   // Destination Search States
@@ -331,6 +332,7 @@ function AppContent() {
             )}
             <View style={{ flex: 1 }}>
               <MapView
+                selectedParking={selectedParking}
                 parkingLots={parkingLots}
                 userLocation={userLocation}
                 recommendedParkingId={activeRouteParkingId || recommendations[0]?.parkingLot.id}
@@ -441,29 +443,66 @@ function AppContent() {
                 </View>
               )}
             </View>
-            
+
             {/* Criteria Mini Selector */}
-            <View style={[styles.miniCriteriaSelector, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <select
-                value={criteria}
-                onChange={(e) => setCriteria(e.target.value as any)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 10,
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  color: colors.text,
-                  fontSize: 13,
-                  fontWeight: '700',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
+            <View style={{ position: 'relative', zIndex: 1001 }}>
+              <TouchableOpacity
+                style={[styles.miniCriteriaSelector, { backgroundColor: colors.background, borderColor: colors.border, flexDirection: 'row', gap: 6, paddingHorizontal: 12 }]}
+                onPress={() => setCriteriaDropdownVisible(!criteriaDropdownVisible)}
               >
-                <option value="balanced" style={{ background: colors.card, color: colors.text }}>⚖️ {(t.recommend as any).criteria?.balanced}</option>
-                <option value="closest" style={{ background: colors.card, color: colors.text }}>📍 {(t.recommend as any).criteria?.closest}</option>
-                <option value="cheapest" style={{ background: colors.card, color: colors.text }}>💵 {(t.recommend as any).criteria?.cheapest}</option>
-                <option value="empty" style={{ background: colors.card, color: colors.text }}>🚗 {(t.recommend as any).criteria?.empty}</option>
-              </select>
+                <Ionicons
+                  name={
+                    criteria === 'balanced' ? 'git-compare-outline' :
+                    criteria === 'closest' ? 'location-outline' :
+                    criteria === 'cheapest' ? 'cash-outline' : 'car-outline'
+                  }
+                  size={18}
+                  color={colors.primary}
+                />
+                <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>
+                  {(t.recommend as any).criteria?.[criteria]}
+                </Text>
+                <Ionicons
+                  name={criteriaDropdownVisible ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+              
+              {criteriaDropdownVisible && (
+                <View style={[styles.criteriaDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  {(['balanced', 'closest', 'cheapest', 'empty'] as const).map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      style={[
+                        styles.criteriaDropdownItem,
+                        criteria === item && { backgroundColor: colors.primary + '15' }
+                      ]}
+                      onPress={() => {
+                        setCriteria(item);
+                        setCriteriaDropdownVisible(false);
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          item === 'balanced' ? 'git-compare-outline' :
+                          item === 'closest' ? 'location-outline' :
+                          item === 'cheapest' ? 'cash-outline' : 'car-outline'
+                        }
+                        size={16}
+                        color={criteria === item ? colors.primary : colors.textSecondary}
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={[
+                        styles.criteriaDropdownText,
+                        { color: criteria === item ? colors.primary : colors.text }
+                      ]}>
+                        {(t.recommend as any).criteria?.[item]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -619,6 +658,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
+  },
+  criteriaDropdown: {
+    position: 'absolute',
+    top: 52,
+    right: 0,
+    borderRadius: 12,
+    borderWidth: 1,
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1002,
+  },
+  criteriaDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  criteriaDropdownText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   suggestionItem: {
     flexDirection: 'row',
