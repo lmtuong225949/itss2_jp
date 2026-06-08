@@ -36,6 +36,12 @@ export const translations = {
       routeTo: 'Đường đi đến',
       noDestination: 'Vị trí hiện tại',
       customDestination: 'Địa điểm đã chọn trên bản đồ',
+      criteria: {
+        balanced: 'Cân bằng',
+        closest: 'Gần nhất',
+        cheapest: 'Rẻ nhất',
+        empty: 'Nhiều chỗ nhất',
+      },
     },
     list: {
       title: 'Bãi đỗ xe gần đây',
@@ -123,6 +129,12 @@ export const translations = {
       routeTo: 'Route to',
       noDestination: 'Current Location',
       customDestination: 'Selected Location on Map',
+      criteria: {
+        balanced: 'Balanced',
+        closest: 'Closest',
+        cheapest: 'Cheapest',
+        empty: 'Most Empty',
+      },
     },
     list: {
       title: 'Nearby Parking',
@@ -210,6 +222,12 @@ export const translations = {
       routeTo: 'ルート',
       noDestination: '現在地',
       customDestination: '地図上の選択位置',
+      criteria: {
+        balanced: 'バランス',
+        closest: '近い順',
+        cheapest: '安い順',
+        empty: '空き優先',
+      },
     },
     list: {
       title: '近くの駐車場',

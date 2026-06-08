@@ -15,6 +15,7 @@ interface ParkingDetailScreenProps {
     parkingLot: ParkingLot;
     onBack: () => void;
     onShowOnMap: (parkingLot: ParkingLot) => void;
+    isSidebar?: boolean;
 }
 
 const getParkingImage = (id: string) => {
@@ -28,7 +29,7 @@ const getParkingImage = (id: string) => {
     }
 };
 
-export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }: ParkingDetailScreenProps) {
+export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, isSidebar = false }: ParkingDetailScreenProps) {
     const { colors, theme } = useTheme();
 
     const currentHour = new Date().getHours();
@@ -54,9 +55,9 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }:
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             {/* Unified Header */}
-            <View style={[styles.header, { backgroundColor: colors.header }]}>
+            <View style={[styles.header, isSidebar && { height: 60 }, { backgroundColor: colors.header }]}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={colors.headerText} />
+                    <Ionicons name={isSidebar ? "close" : "arrow-back"} size={24} color={colors.headerText} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: colors.headerText }]} numberOfLines={1}>
                     {parkingLot.name}
@@ -64,9 +65,9 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap }:
                 <View style={styles.headerRightSpacer} />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={styles.scrollContent}>
                 {/* Image Card */}
-                <View style={[styles.imageCard, { backgroundColor: colors.card }]}>
+                <View style={[styles.imageCard, isSidebar && { height: 160 }, { backgroundColor: colors.card }]}>
                     <Image
                         source={{
                             uri: getParkingImage(parkingLot.id),
