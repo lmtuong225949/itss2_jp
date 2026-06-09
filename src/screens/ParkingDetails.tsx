@@ -10,12 +10,15 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { ParkingLot } from "../types/parking";
 import { useTheme } from "../contexts/ThemeContext";
+import { useTranslation } from "../utils/translations";
+import { localizeParkingLot } from "../utils/localization";
 
 interface ParkingDetailScreenProps {
     parkingLot: ParkingLot;
     onBack: () => void;
     onShowOnMap: (parkingLot: ParkingLot) => void;
     isSidebar?: boolean;
+    language: 'vi' | 'en' | 'ja';
 }
 
 const getParkingImage = (id: string) => {
@@ -29,8 +32,10 @@ const getParkingImage = (id: string) => {
     }
 };
 
-export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, isSidebar = false }: ParkingDetailScreenProps) {
+export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, isSidebar = false, language }: ParkingDetailScreenProps) {
     const { colors, theme } = useTheme();
+    const t = useTranslation(language);
+    const displayParking = localizeParkingLot(parkingLot, language);
 
     const currentHour = new Date().getHours();
 
@@ -60,7 +65,7 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                     <Ionicons name={isSidebar ? "close" : "arrow-back"} size={24} color={colors.headerText} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: colors.headerText }]} numberOfLines={1}>
-                    {parkingLot.name}
+                    {displayParking.name}
                 </Text>
                 <View style={styles.headerRightSpacer} />
             </View>
@@ -77,16 +82,16 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                     <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                         <Ionicons name="car" size={14} color="#fff" />
                     </View>
-                    <Text style={styles.imageTitle}>{parkingLot.name}</Text>
+                    <Text style={styles.imageTitle}>{displayParking.name}</Text>
                 </View>
 
                 {/* Info Card */}
                 <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.rowBetween}>
                         <View style={{ flex: 1, marginRight: 8 }}>
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>ĐỊA CHỈ</Text>
-                            <Text style={[styles.placeName, { color: colors.text }]}>{parkingLot.name}</Text>
-                            <Text style={[styles.addressText, { color: colors.textSecondary }]}>{parkingLot.address}</Text>
+                            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.details.address}</Text>
+                            <Text style={[styles.placeName, { color: colors.text }]}>{displayParking.name}</Text>
+                            <Text style={[styles.addressText, { color: colors.textSecondary }]}>{displayParking.address}</Text>
                         </View>
 
                         <TouchableOpacity
@@ -105,13 +110,13 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                     <View style={styles.statsRow}>
                         <View style={[styles.statBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
                             <Text style={[styles.statPurple, { color: colors.primary }]}>{dayPrice.toLocaleString('vi-VN')}</Text>
-                            <Text style={[styles.statSmall, { color: colors.textSecondary }]}>TRƯỚC</Text>
+                            <Text style={[styles.statSmall, { color: colors.textSecondary }]}>{t.details.before}</Text>
                             <Text style={[styles.statSmall, { color: colors.textSecondary }]}>18H</Text>
                         </View>
 
                         <View style={[styles.statBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
                             <Text style={[styles.statGold, { color: theme === 'light' ? '#B9A178' : '#d4af37' }]}>{nightPrice.toLocaleString('vi-VN')}</Text>
-                            <Text style={[styles.statSmall, { color: colors.textSecondary }]}>SAU</Text>
+                            <Text style={[styles.statSmall, { color: colors.textSecondary }]}>{t.details.after}</Text>
                             <Text style={[styles.statSmall, { color: colors.textSecondary }]}>18H</Text>
                         </View>
 
@@ -125,10 +130,10 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                 {/* Chart Card */}
                 <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.rowBetween}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Giờ cao điểm</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t.details.rushHour}</Text>
                         <View style={styles.liveRow}>
                             <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-                            <Text style={[styles.liveText, { color: colors.textSecondary }]}>Trực tiếp</Text>
+                            <Text style={[styles.liveText, { color: colors.textSecondary }]}>{t.details.live}</Text>
                         </View>
                     </View>
 
@@ -152,7 +157,7 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                                 >
                                     {isNow && (
                                         <View style={[styles.nowBadge, { backgroundColor: colors.primary, minWidth: 32, paddingHorizontal: 6, paddingVertical: 2, alignItems: 'center' }]}>
-                                            <Text style={[styles.nowText, { fontSize: 9 }]} numberOfLines={1}>Now</Text>
+                                            <Text style={[styles.nowText, { fontSize: 9 }]} numberOfLines={1}>{t.details.now}</Text>
                                         </View>
                                     )}
                                     <View
@@ -176,7 +181,7 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                 </View>
 
                 {/* Price */}
-                <Text style={[styles.priceTitle, { color: colors.text }]}>Cơ cấu giá</Text>
+                <Text style={[styles.priceTitle, { color: colors.text }]}>{t.details.priceStructure}</Text>
 
                 <View style={[styles.priceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.priceRow}>
@@ -187,12 +192,12 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                     <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                     <View style={styles.priceRow}>
-                        <Text style={[styles.priceLabel, { color: colors.text }]}>Sau 18h</Text>
+                        <Text style={[styles.priceLabel, { color: colors.text }]}>{t.details.after} 18h</Text>
                         <Text style={[styles.priceValue, { color: colors.text }]}>{nightPrice.toLocaleString('vi-VN')} đ</Text>
                     </View>
 
                     <View style={[styles.priceRowHighlight, { backgroundColor: theme === 'light' ? '#F3EEFB' : '#1e1b4b' }]}>
-                        <Text style={[styles.pricePurple, { color: colors.primary }]}>Qua đêm</Text>
+                        <Text style={[styles.pricePurple, { color: colors.primary }]}>{t.details.overnight}</Text>
                         <Text style={[styles.pricePurple, { color: colors.primary }]}>{overnightPrice.toLocaleString('vi-VN')} đ</Text>
                     </View>
                 </View>

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ParkingLot, UserLocation } from '../types/parking';
+import { useTheme } from '../contexts/ThemeContext';
+import { localizeParkingLot } from '../utils/localization';
 
 declare global {
   interface Window {
@@ -23,6 +25,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const { language } = useTheme();
 
   useEffect(() => {
     // Load Leaflet CSS
@@ -126,6 +129,7 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
 
     // Add parking lot markers
     parkingLots.forEach(parking => {
+      const displayParking = localizeParkingLot(parking, language);
       const availability = parking.availableSpaces / parking.totalSpaces;
       let color = '#28a745'; // Green - available
       let icon = '🅿️';
@@ -150,8 +154,8 @@ const ParkingMap: React.FC<ParkingMapProps> = ({
         .addTo(map)
         .bindPopup(`
         <div style="min-width: 200px;">
-          <h4>${parking.name}</h4>
-          <p>📍 ${parking.address}</p>
+          <h4>${displayParking.name}</h4>
+          <p>📍 ${displayParking.address}</p>
           <p>🚗 Trống: ${parking.availableSpaces}/${parking.totalSpaces}</p>
           <p>💰 ${parking.pricePerHour.toLocaleString()}đ/giờ</p>
           <p>⭐ ${parking.rating || 'N/A'}</p>

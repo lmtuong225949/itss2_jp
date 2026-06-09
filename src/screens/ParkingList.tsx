@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ParkingLot } from '../types/parking';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../utils/translations';
+import { localizeParkingLot } from '../utils/localization';
 import { parkingListStyles } from '../styles/parkingList';
 import { formatDistance } from '../utils/helpers';
 
@@ -58,123 +59,127 @@ const ParkingList: React.FC<ParkingListProps> = ({
         </View>
       </View>
 
-      {parkingLots.map((parking, index) => (
-        <TouchableOpacity
-          key={parking.id}
-          style={[
-            parkingListStyles.parkingCard,
-            { backgroundColor: colors.card },
-            selectedParking?.id === parking.id && { borderColor: colors.primary }
-          ]}
-          onPress={() => onParkingSelect(parking)}
-          activeOpacity={0.8}
-        >
-          <View style={parkingListStyles.cardHeader}>
-            <View style={parkingListStyles.headerLeft}>
-              <Text style={[parkingListStyles.parkingName, { color: colors.text }]}>{parking.name}</Text>
-              <View style={parkingListStyles.addressRow}>
-                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                <Text style={[parkingListStyles.address, { color: colors.textSecondary }]}>{parking.address}</Text>
-              </View>
-            </View>
-            <View style={[
-              parkingListStyles.availabilityBadge,
-              { backgroundColor: getAvailabilityColor(parking.availableSpaces, parking.totalSpaces) }
-            ]}>
-              <Ionicons
-                name={getAvailabilityIconName(parking.availableSpaces, parking.totalSpaces)}
-                size={14}
-                color="white"
-              />
-              <Text style={[parkingListStyles.availabilityText, { color: 'white' }]}>
-                {getAvailabilityText(parking.availableSpaces, parking.totalSpaces)}
-              </Text>
-            </View>
-          </View>
+      {parkingLots.map((parking) => {
+        const displayParking = localizeParkingLot(parking, language);
 
-          <View style={[parkingListStyles.statsRow, { backgroundColor: colors.background }]}>
-            <View style={parkingListStyles.statItem}>
-              <View style={parkingListStyles.statIcon}>
-                <Ionicons name="car-outline" size={20} color={colors.textSecondary} />
+        return (
+          <TouchableOpacity
+            key={parking.id}
+            style={[
+              parkingListStyles.parkingCard,
+              { backgroundColor: colors.card },
+              selectedParking?.id === parking.id && { borderColor: colors.primary }
+            ]}
+            onPress={() => onParkingSelect(parking)}
+            activeOpacity={0.8}
+          >
+            <View style={parkingListStyles.cardHeader}>
+              <View style={parkingListStyles.headerLeft}>
+                <Text style={[parkingListStyles.parkingName, { color: colors.text }]}>{displayParking.name}</Text>
+                <View style={parkingListStyles.addressRow}>
+                  <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                  <Text style={[parkingListStyles.address, { color: colors.textSecondary }]}>{displayParking.address}</Text>
+                </View>
               </View>
-              <View>
-                <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
-                  {parking.availableSpaces}/{parking.totalSpaces}
-                </Text>
-                <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>{t.list.spaces}</Text>
-              </View>
-            </View>
-
-            <View style={[parkingListStyles.statDivider, { backgroundColor: colors.border }]} />
-
-            <View style={parkingListStyles.statItem}>
-              <View style={parkingListStyles.statIcon}>
-                <Ionicons name="cash-outline" size={20} color={colors.textSecondary} />
-              </View>
-              <View>
-                <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
-                  {parking.pricePerHour.toLocaleString()}đ
-                </Text>
-                <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>{t.list.hour}</Text>
-              </View>
-            </View>
-
-            <View style={[parkingListStyles.statDivider, { backgroundColor: colors.border }]} />
-
-            <View style={parkingListStyles.statItem}>
-              <View style={parkingListStyles.statIcon}>
-                <Ionicons name={hasDestination ? "walk" : "navigate-outline"} size={20} color={colors.textSecondary} />
-              </View>
-              <View>
-                <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
-                  {parking.distance ? formatDistance(parking.distance) : '---'}
-                </Text>
-                <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>
-                  {hasDestination ? t.recommend.walkingDistance : t.list.distance}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {hasDestination && (
-            <View style={[localStyles.segmentRow, { backgroundColor: colors.background, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }]}>
-              <Ionicons name="car-outline" size={15} color={colors.textSecondary} />
-              <Text style={[localStyles.segmentText, { color: colors.textSecondary }]}>
-                {t.recommend.drivingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(parking.drivingDistance || 0)}</Text>
-              </Text>
-            </View>
-          )}
-          <View style={parkingListStyles.featuresRow}>
-            {parking.features.slice(0, 3).map((feature, index) => (
-              <View key={index} style={parkingListStyles.featureTag}>
-                <Text style={parkingListStyles.featureText}>✓ {feature}</Text>
-              </View>
-            ))}
-          </View>
-          <View style={parkingListStyles.footer}>
-            <View style={[
-              parkingListStyles.statusBadge,
-              { backgroundColor: parking.isOpen ? '#ecfdf5' : '#fef2f2' }
-            ]}>
-              <Text style={[
-                parkingListStyles.statusText,
-                { color: parking.isOpen ? colors.primary : colors.textSecondary }
+              <View style={[
+                parkingListStyles.availabilityBadge,
+                { backgroundColor: getAvailabilityColor(parking.availableSpaces, parking.totalSpaces) }
               ]}>
-                {parking.isOpen ? `● ${t.list.open}` : `● ${t.list.closed}`}
-              </Text>
+                <Ionicons
+                  name={getAvailabilityIconName(parking.availableSpaces, parking.totalSpaces)}
+                  size={14}
+                  color="white"
+                />
+                <Text style={[parkingListStyles.availabilityText, { color: 'white' }]}>
+                  {getAvailabilityText(parking.availableSpaces, parking.totalSpaces)}
+                </Text>
+              </View>
             </View>
 
-            {parking.rating && (
-              <View style={parkingListStyles.ratingBadge}>
-                <Ionicons name="star" size={12} color="#92400e" />
-                <Text style={parkingListStyles.ratingText}>
-                  {parking.rating.toFixed(1)}
+            <View style={[parkingListStyles.statsRow, { backgroundColor: colors.background }]}>
+              <View style={parkingListStyles.statItem}>
+                <View style={parkingListStyles.statIcon}>
+                  <Ionicons name="car-outline" size={20} color={colors.textSecondary} />
+                </View>
+                <View>
+                  <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
+                    {parking.availableSpaces}/{parking.totalSpaces}
+                  </Text>
+                  <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>{t.list.spaces}</Text>
+                </View>
+              </View>
+
+              <View style={[parkingListStyles.statDivider, { backgroundColor: colors.border }]} />
+
+              <View style={parkingListStyles.statItem}>
+                <View style={parkingListStyles.statIcon}>
+                  <Ionicons name="cash-outline" size={20} color={colors.textSecondary} />
+                </View>
+                <View>
+                  <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
+                    {parking.pricePerHour.toLocaleString()}đ
+                  </Text>
+                  <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>{t.list.hour}</Text>
+                </View>
+              </View>
+
+              <View style={[parkingListStyles.statDivider, { backgroundColor: colors.border }]} />
+
+              <View style={parkingListStyles.statItem}>
+                <View style={parkingListStyles.statIcon}>
+                  <Ionicons name={hasDestination ? "walk" : "navigate-outline"} size={20} color={colors.textSecondary} />
+                </View>
+                <View>
+                  <Text style={[parkingListStyles.statValue, { color: colors.text }]}>
+                    {parking.distance ? formatDistance(parking.distance) : '---'}
+                  </Text>
+                  <Text style={[parkingListStyles.statLabel, { color: colors.textSecondary }]}>
+                    {hasDestination ? t.recommend.walkingDistance : t.list.distance}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {hasDestination && (
+              <View style={[localStyles.segmentRow, { backgroundColor: colors.background, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }]}>
+                <Ionicons name="car-outline" size={15} color={colors.textSecondary} />
+                <Text style={[localStyles.segmentText, { color: colors.textSecondary }]}>
+                  {t.recommend.drivingDistance}: <Text style={{ color: colors.text, fontWeight: '700' }}>{formatDistance(parking.drivingDistance || 0)}</Text>
                 </Text>
               </View>
             )}
-          </View>
-        </TouchableOpacity>
-      ))}
+            <View style={parkingListStyles.featuresRow}>
+              {displayParking.features.slice(0, 3).map((feature, featureIndex) => (
+                <View key={featureIndex} style={parkingListStyles.featureTag}>
+                  <Text style={parkingListStyles.featureText}>✓ {feature}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={parkingListStyles.footer}>
+              <View style={[
+                parkingListStyles.statusBadge,
+                { backgroundColor: parking.isOpen ? '#ecfdf5' : '#fef2f2' }
+              ]}>
+                <Text style={[
+                  parkingListStyles.statusText,
+                  { color: parking.isOpen ? colors.primary : colors.textSecondary }
+                ]}>
+                  {parking.isOpen ? `● ${t.list.open}` : `● ${t.list.closed}`}
+                </Text>
+              </View>
+
+              {parking.rating && (
+                <View style={parkingListStyles.ratingBadge}>
+                  <Ionicons name="star" size={12} color="#92400e" />
+                  <Text style={parkingListStyles.ratingText}>
+                    {parking.rating.toFixed(1)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
     </ScrollView>
   );
 };

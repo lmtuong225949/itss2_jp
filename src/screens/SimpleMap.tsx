@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { ParkingLot, UserLocation } from '../types/parking';
+import { useTheme } from '../contexts/ThemeContext';
+import { localizeParkingLot } from '../utils/localization';
 
 interface SimpleMapProps {
   parkingLots: ParkingLot[];
@@ -19,6 +21,7 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
 }) => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const { language } = useTheme();
 
   useEffect(() => {
     // Load Leaflet CSS
@@ -132,6 +135,7 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
 
       // Add parking lot markers
       parkingLots.forEach(parking => {
+        const displayParking = localizeParkingLot(parking, language);
         const availability = parking.availableSpaces / parking.totalSpaces;
         let color = '#28a745'; // Green
         let icon = '🅿️';
@@ -156,8 +160,8 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
           .addTo(map)
           .bindPopup(`
           <div style="min-width: 200px; font-family: Arial, sans-serif;">
-            <h4 style="margin: 0 0 8px 0; color: #333;">${parking.name}</h4>
-            <p style="margin: 4px 0; color: #666;">📍 ${parking.address}</p>
+            <h4 style="margin: 0 0 8px 0; color: #333;">${displayParking.name}</h4>
+            <p style="margin: 4px 0; color: #666;">📍 ${displayParking.address}</p>
             <p style="margin: 4px 0; color: #666;">🚗 Trống: ${parking.availableSpaces}/${parking.totalSpaces}</p>
             <p style="margin: 4px 0; color: #666;">💰 ${parking.pricePerHour.toLocaleString()}đ/giờ</p>
             <p style="margin: 4px 0; color: #666;">⭐ ${parking.rating || 'N/A'}</p>
@@ -166,7 +170,7 @@ const SimpleMap: React.FC<SimpleMapProps> = ({
         `);
 
         marker.on('click', () => {
-          console.log('Parking selected:', parking.name);
+          console.log('Parking selected:', displayParking.name);
           onParkingSelect(parking);
         });
       });

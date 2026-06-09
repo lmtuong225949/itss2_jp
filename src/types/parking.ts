@@ -1,7 +1,15 @@
+export type Language = 'vi' | 'en' | 'ja';
+
+export interface LocalizedText {
+  vi: string;
+  en: string;
+  ja: string;
+}
+
 export interface ParkingLot {
   id: string;
-  name: string;
-  address: string;
+  name: LocalizedText;
+  address: LocalizedText;
   latitude: number;
   longitude: number;
   totalSpaces: number;
@@ -11,7 +19,7 @@ export interface ParkingLot {
   distance?: number;
   drivingDistance?: number;
   rating?: number;
-  features: string[];
+  features: LocalizedText[];
   lastUpdated: Date;
 }
 

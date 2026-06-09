@@ -79,8 +79,8 @@ function AppContent() {
   const getParkingExporterCode = () => {
     const lines = editableParkingLots.map(p => `  {
     id: '${p.id}',
-    name: '${p.name}',
-    address: '${p.address}',
+    name: ${JSON.stringify(p.name)},
+    address: ${JSON.stringify(p.address)},
     latitude: ${p.latitude},
     longitude: ${p.longitude},
     totalSpaces: ${p.totalSpaces},
@@ -88,7 +88,7 @@ function AppContent() {
     pricePerHour: ${p.pricePerHour},
     isOpen: ${p.isOpen},
     rating: ${p.rating},
-    features: [${p.features.map(f => `'${f}'`).join(', ')}],
+    features: [${p.features.map(f => JSON.stringify(f)).join(', ')}],
     lastUpdated: new Date(),
   }`).join(',\n');
 
@@ -327,6 +327,7 @@ function AppContent() {
                     setActiveRouteParkingId(parkingLot.id);
                   }}
                   isSidebar={true}
+                  language={language}
                 />
               </View>
             )}
