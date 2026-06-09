@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ParkingLot, UserLocation } from '../types/parking';
+import { useTheme } from '../contexts/ThemeContext';
+import { localizeParkingLot } from '../utils/localization';
 
 declare global {
   interface Window {
@@ -25,6 +27,7 @@ const WebMap: React.FC<WebMapProps> = ({
   const [error, setError] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const { language } = useTheme();
 
   // Keep track of Leaflet markers without re-creating the map
   const parkingMarkersRef = useRef<Map<string, any>>(new Map());
@@ -86,6 +89,7 @@ const WebMap: React.FC<WebMapProps> = ({
 
     // Add or update parking lot markers
     currentParkingLots.forEach((parking, index) => {
+      const displayParking = localizeParkingLot(parking, language);
       const availability = parking.availableSpaces / parking.totalSpaces;
       let color = '#28a745'; // Green
       let icon = '🅿️';
@@ -106,8 +110,8 @@ const WebMap: React.FC<WebMapProps> = ({
 
       const popupContent = `
         <div style="min-width: 200px; font-family: Arial, sans-serif;">
-          <h4 style="margin: 0 0 8px 0; color: #333;">${parking.name}</h4>
-          <p style="margin: 4px 0; color: #666;">${parking.address}</p>
+          <h4 style="margin: 0 0 8px 0; color: #333;">${displayParking.name}</h4>
+          <p style="margin: 4px 0; color: #666;">${displayParking.address}</p>
           <p style="margin: 4px 0; color: #666;">Trống: ${parking.availableSpaces}/${parking.totalSpaces}</p>
           <p style="margin: 4px 0; color: #666;">${parking.pricePerHour.toLocaleString()}đ/lượt</p>
           <p style="margin: 4px 0; color: #666;">Đánh giá: ${parking.rating || 'N/A'}</p>
@@ -134,7 +138,7 @@ const WebMap: React.FC<WebMapProps> = ({
           .bindPopup(popupContent);
 
         marker.on('click', () => {
-          console.log('Parking selected:', parking.name);
+          console.log('Parking selected:', displayParking.name);
           if (onParkingSelectRef.current) {
             const latest = parkingLotsRef.current.find(p => p.id === parking.id) || parking;
             onParkingSelectRef.current(latest);
@@ -142,7 +146,7 @@ const WebMap: React.FC<WebMapProps> = ({
         });
 
         parkingMarkersRef.current.set(parking.id, marker);
-        console.log(`Parking marker ${index + 1} added: ${parking.name}`);
+        console.log(`Parking marker ${index + 1} added: ${displayParking.name}`);
       }
     });
   };

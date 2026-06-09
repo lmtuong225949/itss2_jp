@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { ParkingLot, UserLocation } from '../types/parking';
 import { formatDistance } from '../utils/helpers';
+import { useTheme } from '../contexts/ThemeContext';
+import { localizeParkingLot } from '../utils/localization';
 
 interface StaticMapProps {
   parkingLots: ParkingLot[];
@@ -15,6 +17,8 @@ const StaticMap: React.FC<StaticMapProps> = ({
   selectedParking,
   onParkingSelect,
 }) => {
+  const { language } = useTheme();
+
   // Tạo URL cho OpenStreetMap static map
   const getMapImageUrl = () => {
     const isUserInHanoi = userLocation &&
@@ -92,6 +96,9 @@ const StaticMap: React.FC<StaticMapProps> = ({
         <Text style={styles.listTitle}>🅿️ Bãi đỗ xe gần đây</Text>
 
         {parkingLots.slice(0, 3).map((parking) => (
+          (() => {
+            const displayParking = localizeParkingLot(parking, language);
+            return (
           <TouchableOpacity
             key={parking.id}
             style={[
@@ -101,7 +108,7 @@ const StaticMap: React.FC<StaticMapProps> = ({
             onPress={() => onParkingSelect(parking)}
           >
             <View style={styles.cardHeader}>
-              <Text style={styles.parkingName}>{parking.name}</Text>
+              <Text style={styles.parkingName}>{displayParking.name}</Text>
               <View style={[
                 styles.availabilityBadge,
                 {
@@ -115,7 +122,7 @@ const StaticMap: React.FC<StaticMapProps> = ({
               </View>
             </View>
 
-            <Text style={styles.address}>📍 {parking.address}</Text>
+            <Text style={styles.address}>📍 {displayParking.address}</Text>
 
             <View style={styles.cardFooter}>
               <Text style={styles.price}>💰 {parking.pricePerHour.toLocaleString()}đ/giờ</Text>
@@ -130,6 +137,8 @@ const StaticMap: React.FC<StaticMapProps> = ({
               </Text>
             </View>
           </TouchableOpacity>
+            );
+          })()
         ))}
       </ScrollView>
 

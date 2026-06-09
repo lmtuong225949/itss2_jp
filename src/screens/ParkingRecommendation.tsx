@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ParkingRecommendation as RecommendationType } from '../types/parking';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../utils/translations';
+import { localizeParkingLot } from '../utils/localization';
 import { parkingRecommendationStyles } from '../styles/parkingRecommendation';
 import { formatDistance } from '../utils/helpers';
 
@@ -34,7 +35,10 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={parkingRecommendationStyles.scrollContent}>
-      {recommendations.map((recommendation, index) => (
+      {recommendations.map((recommendation, index) => {
+        const displayParking = localizeParkingLot(recommendation.parkingLot, language);
+
+        return (
         <View
           key={recommendation.parkingLot.id}
           style={[
@@ -55,12 +59,12 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
             </View>
             <View style={parkingRecommendationStyles.headerText}>
               <Text style={[parkingRecommendationStyles.parkingName, { color: colors.text }]} numberOfLines={1}>
-                {recommendation.parkingLot.name}
+                {displayParking.name}
               </Text>
               <View style={parkingRecommendationStyles.addressRow}>
                 <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
                 <Text style={[parkingRecommendationStyles.address, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {recommendation.parkingLot.address}
+                  {displayParking.address}
                 </Text>
               </View>
             </View>
@@ -142,7 +146,8 @@ const ParkingRecommendationComponent: React.FC<ParkingRecommendationProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 };

@@ -5,6 +5,7 @@ import { formatDistance } from '../utils/helpers';
 import { mockDestinations } from '../data/destinationData';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from '../utils/translations';
+import { getLocalizedText } from '../utils/localization';
 
 const fetchRoute = async (
   start: UserLocation,
@@ -323,7 +324,7 @@ export default function MapView({
           marker.on('click', () => {
             if (editParkingModeRef.current) return;
             try {
-              console.log('Marker clicked:', parking.name);
+              console.log('Marker clicked:', getLocalizedText(parking.name, language));
               if (onSelectRouteParkingRef.current) {
                 onSelectRouteParkingRef.current(parking.id);
               }
