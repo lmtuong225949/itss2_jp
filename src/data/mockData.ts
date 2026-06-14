@@ -158,14 +158,14 @@ export const mockParkingLots: ParkingLot[] = [
   {
     id: '8',
     name: {
-      vi: 'Bãi đỗ xe C5',
-      en: 'C5 Parking Lot',
-      ja: 'C5 駐車場',
+      vi: 'Bãi đỗ xe C4',
+      en: 'C4 Parking Lot',
+      ja: 'C4 駐車場',
     },
     address: {
-      vi: 'Khu vực C5 ĐH Bách Khoa Hà Nội',
-      en: 'C5 Area, Hanoi University of Science and Technology',
-      ja: 'ハノイ工科大学 C5 エリア',
+      vi: 'Khu vực C4 ĐH Bách Khoa Hà Nội',
+      en: 'C4 Area, Hanoi University of Science and Technology',
+      ja: 'ハノイ工科大学 C4 エリア',
     },
     latitude: 21.006027,
     longitude: 105.844157,

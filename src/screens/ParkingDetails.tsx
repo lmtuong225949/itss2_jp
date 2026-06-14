@@ -23,12 +23,18 @@ interface ParkingDetailScreenProps {
 
 const getParkingImage = (id: string) => {
     switch (id) {
-        case '1': return 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a'; // C7
-        case '2': return 'https://images.unsplash.com/photo-1590674899484-d5640e854abe'; // D3-D5
-        case '3': return 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98'; // D9
-        case '4': return 'https://images.unsplash.com/photo-1540959733332-eab4deceeaf7'; // D6-D8
-        case '5': return 'https://images.unsplash.com/photo-1517649763962-0c623066013b'; // C9
-        default: return 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a';
+        case '1': return require('../../assets/img/c7.jpg'); // C7
+        case '2': return require('../../assets/img/d35.jpg'); // D3-D5
+        case '3': return require('../../assets/img/d79.jpg'); // D9
+        case '4': return require('../../assets/img/d68.jpg'); // D6-D8
+        case '5': return require('../../assets/img/c9.jpg'); // C9
+        case '6': return require('../../assets/img/b1.jpg'); // B1
+        case '7': return require('../../assets/img/b6.jpg'); // KTX B6
+        case '8': return require('../../assets/img/c4.jpg'); // C4
+        case '9': return require('../../assets/img/d8.jpg'); // D8
+        case '11': return require('../../assets/img/svd.jpg'); // SVD
+        case '12': return require('../../assets/img/tc.jpg'); //  TC
+        default: return require('../../assets/img/tc.jpg');
     }
 };
 
@@ -74,9 +80,7 @@ export default function ParkingDetailScreen({ parkingLot, onBack, onShowOnMap, i
                 {/* Image Card */}
                 <View style={[styles.imageCard, isSidebar && { height: 160 }, { backgroundColor: colors.card }]}>
                     <Image
-                        source={{
-                            uri: getParkingImage(parkingLot.id),
-                        }}
+                        source={getParkingImage(parkingLot.id)}
                         style={styles.parkingImage}
                     />
                     <View style={[styles.badge, { backgroundColor: colors.primary }]}>

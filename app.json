@@ -31,7 +31,10 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/parking.png"
+    },
+    "assets": [
+      "./assets/img/"
+    ]
   }
 }

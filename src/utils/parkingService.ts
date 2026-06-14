@@ -224,8 +224,12 @@ export class ParkingService {
     const lowerQuery = query.toLowerCase();
 
     return allLots.filter(parking =>
-      parking.name.toLowerCase().includes(lowerQuery) ||
-      parking.address.toLowerCase().includes(lowerQuery)
+      parking.name.vi.toLowerCase().includes(lowerQuery) ||
+      parking.name.en.toLowerCase().includes(lowerQuery) ||
+      parking.name.ja.toLowerCase().includes(lowerQuery) ||
+      parking.address.vi.toLowerCase().includes(lowerQuery) ||
+      parking.address.en.toLowerCase().includes(lowerQuery) ||
+      parking.address.ja.toLowerCase().includes(lowerQuery)
     );
   }
 
